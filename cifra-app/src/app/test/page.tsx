@@ -4,15 +4,17 @@ import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { TOTAL_QUESTIONS } from "@/data/questions";
+import { CHECKPOINTS } from "@/data/checkpoints";
 import type { Answer, Dimension } from "@/lib/types";
 import { Intro } from "@/components/quiz/Intro";
 import { QuizScreen } from "@/components/quiz/QuizScreen";
+import { CheckpointScreen } from "@/components/quiz/CheckpointScreen";
 import { Analyzing } from "@/components/quiz/Analyzing";
 import { ResultsScreen } from "@/components/results/ResultsScreen";
 import { OfferScreen } from "@/components/offer/OfferScreen";
 import { Toast } from "@/components/ui/Toast";
 
-type Screen = "intro" | "quiz" | "analyzing" | "results" | "offer";
+type Screen = "intro" | "quiz" | "checkpoint" | "analyzing" | "results" | "offer";
 
 export default function TestPage() {
   const router = useRouter();
@@ -21,16 +23,26 @@ export default function TestPage() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [totalElapsedMs, setTotalElapsedMs] = useState(0);
   const [toast, setToast] = useState({ show: false, message: "" });
+  const [pendingNextIndex, setPendingNextIndex] = useState<number | null>(null);
 
   const handleAnswer = useCallback(
     (correct: boolean, dimension: Dimension, elapsedMs: number) => {
       setAnswers((prev) => {
         const next: Answer[] = [...prev, { questionId: questionIndex + 1, correct, dimension, elapsedMs }];
-        if (questionIndex + 1 >= TOTAL_QUESTIONS) {
+        const completedCount = questionIndex + 1;
+
+        if (completedCount >= TOTAL_QUESTIONS) {
           setTotalElapsedMs(next.reduce((sum, a) => sum + a.elapsedMs, 0));
           setScreen("analyzing");
+          return next;
+        }
+
+        const checkpoint = CHECKPOINTS.find((c) => c.afterQuestion === completedCount);
+        if (checkpoint) {
+          setPendingNextIndex(completedCount);
+          setScreen("checkpoint");
         } else {
-          setQuestionIndex((i) => i + 1);
+          setQuestionIndex(completedCount);
         }
         return next;
       });
@@ -38,17 +50,26 @@ export default function TestPage() {
     [questionIndex],
   );
 
+  function continueFromCheckpoint() {
+    if (pendingNextIndex !== null) {
+      setQuestionIndex(pendingNextIndex);
+      setPendingNextIndex(null);
+    }
+    setScreen("quiz");
+  }
+
   function showToast(message: string) {
     setToast({ show: true, message });
     window.setTimeout(() => setToast({ show: false, message: "" }), 3200);
   }
 
   function handleCheckout() {
-    // TODO integración real: redirige al checkout de Hotmart / Stripe / la
-    // pasarela que elijas, o abre tu modal de pago. Por ahora solo
-    // confirma la acción para no bloquear la demo con un pago real.
     showToast("Aquí se conectaría tu pasarela de pago (Hotmart, Stripe, etc.)");
   }
+
+  const activeCheckpoint = pendingNextIndex !== null
+    ? CHECKPOINTS.find((c) => c.afterQuestion === pendingNextIndex)
+    : undefined;
 
   return (
     <div className="min-h-screen">
@@ -62,6 +83,18 @@ export default function TestPage() {
         {screen === "quiz" && (
           <motion.div key="quiz" exit={{ opacity: 0 }}>
             <QuizScreen questionIndex={questionIndex} onAnswer={handleAnswer} />
+          </motion.div>
+        )}
+
+        {screen === "checkpoint" && activeCheckpoint && (
+          <motion.div key="checkpoint" exit={{ opacity: 0 }}>
+            <CheckpointScreen
+              eyebrow={activeCheckpoint.eyebrow}
+              title={activeCheckpoint.title}
+              text={activeCheckpoint.text}
+              percent={(activeCheckpoint.afterQuestion / TOTAL_QUESTIONS) * 100}
+              onContinue={continueFromCheckpoint}
+            />
           </motion.div>
         )}
 
@@ -86,7 +119,6 @@ export default function TestPage() {
 
       <Toast show={toast.show} message={toast.message} />
 
-      {/* Salida discreta para volver a la landing sin perder el flujo accidentalmente */}
       {screen === "intro" && (
         <button
           type="button"
