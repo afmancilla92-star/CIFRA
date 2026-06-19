@@ -32,9 +32,9 @@ export function OfferScreen({ onBack, onCheckout }: OfferScreenProps) {
 
         <div className="rounded-[22px] border border-border bg-surface p-[26px] shadow-soft dark:shadow-soft-dark">
           <div className="mb-1 flex items-baseline gap-2">
-            <span className="font-display text-[34px] font-extrabold">$29.900</span>
-            <span className="text-sm text-text-soft line-through">$69.900</span>
-            <span className="text-xs font-bold text-jade">-57%</span>
+            <span className="font-display text-[34px] font-extrabold">$12 USD</span>
+            <span className="text-sm text-text-soft line-through">$24 USD</span>
+            <span className="text-xs font-bold text-jade">-50%</span>
           </div>
           <p className="mb-5 text-[12.5px] text-text-soft">Pago único · acceso inmediato</p>
 
