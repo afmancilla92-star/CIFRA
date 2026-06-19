@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --text: #10151b;
+  --text-soft: #5b6470;
+  --border: #e2e6ea;
+  --petrol: #0e5c56;
+  --petrol-soft: #e6f0ef;
+  --violet: #6a5acd;
+  --jade: #1fa971;
+  --amber: #b9821f;
+  --amber-soft: #fbf1e2;
+  --glass: rgba(255, 255, 255, 0.72);
+}
+
+.dark {
+  --bg: #0b0e12;
+  --surface: #12161c;
+  --text: #f1f3f5;
+  --text-soft: #9aa3ad;
+  --border: #232a33;
+  --petrol: #3fa295;
+  --petrol-soft: #13302d;
+  --violet: #9c90e8;
+  --jade: #3fd686;
+  --amber: #e7b463;
+  --amber-soft: #2e2515;
+  --glass: rgba(18, 22, 28, 0.72);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--petrol);
+  outline-offset: 2px;
+}
