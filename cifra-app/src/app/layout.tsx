@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const manrope = Manrope({ subsets: ["latin"], weight: ["500", "700", "800"], variable: "--font-manrope", display: "swap" });
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-jakarta", display: "swap" });
 
-const SITE_URL = "https://cifra.example.com";
+const SITE_URL = "https://cifra-mu.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
