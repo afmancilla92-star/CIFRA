@@ -6,7 +6,7 @@ A production quiz funnel: landing page → 25-question cognitive assessment → 
 
 ## What it does
 
-A visitor lands, takes a 25-question assessment, and receives a scored profile. The scoring engine maps raw answers to result tiers, and each tier drives a different results page and offer. The funnel converts to a paid PDF report.
+A visitor lands, takes a 25-question assessment, and receives a scored profile. The scoring engine maps raw answers to result tiers, and each tier drives a different results page and offer. The funnel drives toward a paid PDF report.
 
 ## Stack
 
@@ -34,3 +34,7 @@ npm run dev
 - **Client-side scoring.** No backend. The assessment qualifies leads; it is not a clinical instrument, so visible scoring logic in exchange for zero infrastructure was an acceptable trade-off.
 - **No session persistence.** An abandoned quiz is intentionally lost, not resumed.
 - **Not a diagnostic tool.** This is an engagement and segmentation device, not a validated psychometric instrument.
+
+## Current state
+
+The funnel is live and complete through the results and offer screens. Payment gateway integration is stubbed (`OfferScreen.tsx`) — the conversion path is built but not wired to a live processor.
