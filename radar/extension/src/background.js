@@ -2,7 +2,8 @@
  * Cifra Radar — service worker. Única pieza que habla con tu plataforma.
  * Guarda la URL y el token en chrome.storage.sync (nunca en la página).
  */
-const DEFAULTS = { apiBase: "", token: "" };
+// Por defecto apunta a la plataforma local (npm run dev), que acepta este token en desarrollo.
+const DEFAULTS = { apiBase: "http://localhost:3000", token: "radar-local" };
 
 function normalizeBase(raw) {
   try {

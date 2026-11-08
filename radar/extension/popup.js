@@ -12,7 +12,7 @@ async function activeTab() {
 }
 
 async function loadSettings() {
-  const s = await chrome.storage.sync.get({ apiBase: "", token: "" });
+  const s = await chrome.storage.sync.get({ apiBase: "http://localhost:3000", token: "radar-local" });
   $("apiBase").value = s.apiBase;
   $("token").value = s.token;
   if (!s.apiBase || !s.token) $("config").open = true;

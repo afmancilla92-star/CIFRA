@@ -30,3 +30,21 @@ describe("landing", () => {
     expect(normalizeLanding("javascript:alert(1)", "Compra ya")).toBeNull();
   });
 });
+
+describe("token de la extensión", () => {
+  it("usa radar-local solo fuera de producción", async () => {
+    const { config, DEV_INGEST_TOKEN } = await import("@/lib/config");
+    const env = process.env as Record<string, string | undefined>;
+    const prev = { node: env.NODE_ENV, token: env.INGEST_TOKEN };
+    delete env.INGEST_TOKEN;
+    env.NODE_ENV = "development";
+    expect(config.ingestToken).toBe(DEV_INGEST_TOKEN);
+    env.NODE_ENV = "production";
+    expect(config.ingestToken).toBeNull();
+    env.INGEST_TOKEN = "otro";
+    expect(config.ingestToken).toBe("otro");
+    env.NODE_ENV = prev.node;
+    if (prev.token === undefined) delete env.INGEST_TOKEN;
+    else env.INGEST_TOKEN = prev.token;
+  });
+});

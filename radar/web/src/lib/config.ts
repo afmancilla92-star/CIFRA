@@ -1,3 +1,6 @@
+/** Token por defecto para uso local (coincide con el valor por defecto de la extensión). */
+export const DEV_INGEST_TOKEN = "radar-local";
+
 /** Lectura centralizada de variables de entorno (solo servidor). */
 export const config = {
   get metaToken() {
@@ -10,8 +13,15 @@ export const config = {
     const n = Number(process.env.META_MAX_PAGES || 4);
     return Number.isFinite(n) && n > 0 ? Math.min(20, n) : 4;
   },
+  /**
+   * En desarrollo local, sin INGEST_TOKEN se usa "radar-local", que es el
+   * valor por defecto de la extensión: así funciona sin configurar nada.
+   * En producción el token es obligatorio.
+   */
   get ingestToken() {
-    return process.env.INGEST_TOKEN?.trim() || null;
+    const t = process.env.INGEST_TOKEN?.trim();
+    if (t) return t;
+    return process.env.NODE_ENV === "production" ? null : DEV_INGEST_TOKEN;
   },
   get appPassword() {
     return process.env.APP_PASSWORD || null;

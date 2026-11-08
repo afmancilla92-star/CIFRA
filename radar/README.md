@@ -89,9 +89,11 @@ Se muestra siempre con la aclaración de que **no mide ventas, conversiones ni r
 ```bash
 cd radar/web
 npm install
-cp .env.example .env.local   # define al menos INGEST_TOKEN
 npm run dev                  # http://localhost:3000
 ```
+
+En local no hace falta configurar nada: sin `INGEST_TOKEN`, la plataforma acepta el token `radar-local`, que es el que la
+extensión usa por defecto junto con `http://localhost:3000`. Para producción copia `.env.example` y define las variables.
 
 Variables de entorno (ver `web/.env.example`):
 
@@ -108,7 +110,8 @@ Variables de entorno (ver `web/.env.example`):
 ### Extensión de Chrome
 
 1. `chrome://extensions` → activa **Modo desarrollador** → **Cargar descomprimida** → carpeta `radar/extension`.
-2. Ícono de Cifra Radar → «Conexión con la plataforma»: URL de la plataforma y el `INGEST_TOKEN` → «Probar conexión».
+2. En local ya viene conectada a `http://localhost:3000`. Para una plataforma publicada: ícono de Cifra Radar →
+   «Conexión con la plataforma» → URL y `INGEST_TOKEN` → «Probar conexión».
 3. Abre la [Biblioteca de Anuncios](https://www.facebook.com/ads/library/), busca (palabra clave, país, anunciante) y desplázate.
 4. Pulsa **«Enviar a Cifra Radar»** en el panel flotante (o desde el ícono). Los anuncios aparecen al instante en Explorar.
 
