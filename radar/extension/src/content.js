@@ -151,6 +151,7 @@
         const res = await chrome.runtime.sendMessage({ type: "radar:send", payload });
         if (!res || !res.ok) {
           lastMessage = (res && res.error) || "No se pudo enviar. Revisa la configuración de la extensión.";
+          console.warn(`[Cifra Radar] ${lastMessage}`);
           return { ok: false, error: lastMessage };
         }
         totals.created += res.created || 0;
@@ -243,6 +244,8 @@
     }
   });
 
+  // Señal visible en la consola para confirmar que la extensión está activa en la página.
+  console.info(`[Cifra Radar] extensión activa (v${VERSION}). Panel abajo a la derecha.`);
   scanEmbedded();
   render();
   // La Biblioteca es una SPA: al cambiar de búsqueda se vuelve a leer lo incrustado.
