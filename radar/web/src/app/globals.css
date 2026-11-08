@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 245 246 248;
+  --surface: 255 255 255;
+  --surface-2: 240 242 244;
+  --text: 16 21 27;
+  --text-soft: 91 100 112;
+  --border: 226 230 234;
+  --accent: 14 92 86;
+  --accent-soft: 227 239 237;
+  --accent-text: 255 255 255;
+  --amber: 164 111 18;
+  --amber-soft: 251 241 226;
+  --good: 22 121 77;
+  --bad: 180 35 24;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 11 14 18;
+  --surface: 18 22 28;
+  --surface-2: 26 32 40;
+  --text: 241 243 245;
+  --text-soft: 154 163 173;
+  --border: 37 44 53;
+  --accent: 63 162 149;
+  --accent-soft: 19 48 45;
+  --accent-text: 6 34 31;
+  --amber: 231 180 99;
+  --amber-soft: 46 37 21;
+  --good: 63 214 134;
+  --bad: 255 123 114;
+  color-scheme: dark;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-surface;
+  }
+  .input {
+    @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-soft/70;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-soft;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-accent-text hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply btn border border-border bg-surface text-text hover:bg-surface-2;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-soft;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

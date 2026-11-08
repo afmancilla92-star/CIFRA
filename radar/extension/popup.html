@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Cifra Radar</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icons/icon48.png" width="24" height="24" alt="" />
+      <strong>Cifra Radar</strong>
+    </header>
+
+    <section id="tab">
+      <p class="muted" id="tab-status">Abre la Biblioteca de Anuncios de Meta para capturar anuncios.</p>
+      <button id="send" class="primary" hidden>Enviar anuncios detectados</button>
+      <button id="open-library" class="ghost">Abrir la Biblioteca de Anuncios</button>
+      <p id="send-result" class="msg"></p>
+    </section>
+
+    <details id="config">
+      <summary>Conexión con la plataforma</summary>
+      <label>URL de la plataforma
+        <input id="apiBase" type="url" placeholder="https://tu-radar.vercel.app" autocomplete="off" />
+      </label>
+      <label>Token de la extensión (INGEST_TOKEN)
+        <input id="token" type="password" autocomplete="off" />
+      </label>
+      <div class="row">
+        <button id="save" class="primary">Guardar</button>
+        <button id="test" class="ghost">Probar conexión</button>
+      </div>
+      <p id="config-result" class="msg"></p>
+    </details>
+
+    <footer class="muted">
+      Solo se envía lo que ves cuando pulsas «Enviar». La extensión no navega, no hace scroll ni consultas por su cuenta.
+      <a id="open-app" href="#">Abrir plataforma</a>
+    </footer>
+    <script src="popup.js"></script>
+  </body>
+</html>
