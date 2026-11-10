@@ -43,7 +43,9 @@ export interface LocalIngestResult {
 
 export interface ExtensionPayload {
   pageUrl: string;
-  query?: { country?: string | null; q?: string | null; pageId?: string | null };
+  query?: { country?: string | null; q?: string | null; pageId?: string | null; sort?: string | null };
+  /** Posición de cada anuncio cuando la búsqueda está ordenada por impresiones totales. */
+  ranks?: Record<string, number>;
   nodes?: unknown[];
   domCards?: DomCard[];
 }
@@ -101,6 +103,12 @@ export function mapExtensionPayload(p: ExtensionPayload): { ads: RawAd[]; countr
   return { ads, countries };
 }
 
+function sanitizeRanks(r: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [id, n] of Object.entries(r).slice(0, 3000)) if (/^\d{5,25}$/.test(id) && Number.isFinite(n) && n > 0) out[id] = Math.round(n);
+  return out;
+}
+
 export class LocalStore {
   private constructor(private idb: IDBDatabase) {}
 
@@ -155,7 +163,15 @@ export class LocalStore {
 
   async ingest(
     input: RawAd[],
-    opts: { source: SourceKind; queryCountries?: string[]; query?: string | null; context?: Record<string, unknown>; now?: Date },
+    opts: {
+      source: SourceKind;
+      queryCountries?: string[];
+      query?: string | null;
+      /** Posición de cada anuncio (por ID) en una búsqueda ordenada por impresiones. */
+      ranks?: Record<string, number>;
+      context?: Record<string, unknown>;
+      now?: Date;
+    },
   ): Promise<LocalIngestResult> {
     const now = (opts.now ?? new Date()).toISOString();
     const batch = prepareBatch(input);
@@ -163,7 +179,13 @@ export class LocalStore {
     const touched = new Set<string>();
     for (const ad of batch.ads) {
       const existing = await this.get<AdRecord>("ads", ad.id);
-      const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, query: opts.query, now });
+      const { record, weak } = mergeAd(existing, ad, {
+        source: opts.source,
+        queryCountries: opts.queryCountries,
+        query: opts.query,
+        rank: opts.ranks?.[ad.id] ?? null,
+        now,
+      });
       const advExisting = await this.get<AdvertiserRecord>("advertisers", ad.pageId);
       const adv = mergeAdvertiser(advExisting, ad, record, weak, now);
       const tx = this.idb.transaction(["ads", "advertisers"], "readwrite");
@@ -198,6 +220,7 @@ export class LocalStore {
       source: "extension",
       queryCountries: countries,
       query: p.query?.q ?? null,
+      ranks: p.query?.sort === "total_impressions" && p.ranks ? sanitizeRanks(p.ranks) : undefined,
       context: { q: p.query?.q ?? null, country: countries[0] ?? null },
     });
   }

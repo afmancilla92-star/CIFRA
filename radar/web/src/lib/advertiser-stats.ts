@@ -22,6 +22,8 @@ export interface StatsInput {
   format: string;
   media: MediaItem[];
   niche: string | null;
+  impressionRank?: number | null;
+  impressionQuery?: string | null;
 }
 
 export interface AdvertiserStats {
@@ -71,6 +73,8 @@ export function computeAdvertiserStats(rows: StatsInput[], now = new Date()): Ad
       landingKind: r.landingDomain ? landingKind(r.landingDomain) : null,
       landingDomainOnly: !r.linkUrl,
       launchWeeks: r.landingKey ? g.weeks : r.startDate ? 1 : 0,
+      impressionRank: r.impressionRank ?? null,
+      impressionQuery: r.impressionQuery ?? null,
     });
     perAd.set(r.id, { score: result.score, signals: result.signals });
   }

@@ -371,8 +371,8 @@
     signals.push({
       key: "longevity",
       label: "Días activos",
-      max: 30,
-      points: round1(30 * clamp01(Math.log(1 + d) / Math.log(1 + 90))),
+      max: 25,
+      points: round1(25 * clamp01(Math.log(1 + d) / Math.log(1 + 90))),
       observed: i.daysActive === null ? "Fecha de inicio desconocida" : plural(d, "día", "días"),
       explanation: "Cuanto más tiempo mantiene el anunciante un anuncio en circulación, mayor es la señal de continuidad. Alcanza el máximo a los 90 días."
     });
@@ -420,19 +420,19 @@
     let landingPts = 0;
     let landingObs = "Sin destino identificado";
     if (i.landingKind === "web") {
-      landingPts = i.landingDomainOnly ? 7 : 10;
+      landingPts = i.landingDomainOnly ? 3.5 : 5;
       landingObs = i.landingDomainOnly ? "Dominio visible (sin URL completa)" : "Landing page identificada";
     } else if (i.landingKind === "app_store") {
-      landingPts = 6;
+      landingPts = 3;
       landingObs = "Tienda de aplicaciones";
     } else if (i.landingKind) {
-      landingPts = 3;
+      landingPts = 1.5;
       landingObs = i.landingKind === "messaging" ? "Mensajería (WhatsApp/Messenger)" : "Red social";
     }
     signals.push({
       key: "landing",
       label: "Landing page disponible",
-      max: 10,
+      max: 5,
       points: landingPts,
       observed: landingObs,
       explanation: "Un destino web identificable permite analizar la oferta completa y agrupar todos los anuncios que llevan a la misma página."
@@ -446,6 +446,16 @@
       observed: `${i.isActive ? "Sigue activo" : "Ya no circula"} · lanzamientos en ${plural(w, "semana", "semanas")} distintas`,
       explanation: "Si el anunciante sigue lanzando anuncios hacia el mismo destino en semanas distintas, la campaña tiene continuidad en el tiempo."
     });
+    const rank = i.impressionRank && i.impressionRank > 0 ? Math.round(i.impressionRank) : null;
+    const rankPts = !rank ? 0 : rank === 1 ? 10 : rank <= 3 ? 9 : rank <= 10 ? 7.5 : rank <= 30 ? 5.5 : rank <= 60 ? 3.5 : 1.5;
+    signals.push({
+      key: "impressions",
+      label: "Más visto (ranking de Meta)",
+      max: 10,
+      points: rankPts,
+      observed: rank ? `Top #${rank} en impresiones${i.impressionQuery ? ` para «${i.impressionQuery}»` : ""}` : "Sin ranking de impresiones (búscalo desde el radar para obtenerlo)",
+      explanation: "Posición del anuncio cuando la Biblioteca ordena la búsqueda por impresiones totales. Meta solo publica el orden, no cifras de vistas ni de ventas."
+    });
     const score = Math.round(signals.reduce((s, x) => s + x.points, 0));
     return { score: Math.max(0, Math.min(100, score)), signals };
   }
@@ -454,7 +464,7 @@
     if (score >= 40) return { label: "Señales moderadas", tone: "mid" };
     return { label: "Señales bajas", tone: "low" };
   }
-  var SCORE_DISCLAIMER = "Puntuación orientativa basada solo en señales públicas observables (tiempo activo, variantes, volumen, repetición, diversidad, destino y continuidad). No mide ventas, conversiones ni rentabilidad, y no indica que un anuncio sea ganador.";
+  var SCORE_DISCLAIMER = "Puntuación orientativa basada solo en señales públicas observables (tiempo activo, copias, volumen, repetición, diversidad, destino, continuidad y ranking de impresiones de Meta). No mide ventas, conversiones ni rentabilidad, y no indica que un anuncio sea ganador.";
 
   // src/lib/sources/countries.ts
   var COUNTRY_NAMES = {
@@ -588,7 +598,9 @@
       country,
       q,
       search_type: "keyword_unordered",
-      media_type: "all"
+      media_type: "all",
+      "sort_data[mode]": "total_impressions",
+      "sort_data[direction]": "desc"
     });
     return `https://www.facebook.com/ads/library/?${p.toString()}`;
   }
@@ -638,6 +650,7 @@
             created: Number(msg.created) || 0,
             updated: Number(msg.updated) || 0,
             blocked: msg.blocked || null,
+            limited: Boolean(msg.limited),
             error: msg.error || null
           });
         }
@@ -664,7 +677,7 @@
       }
       p.current = list[i];
       onProgress({ ...p });
-      const r = await runSearchJob(list[i], country, 2);
+      const r = await runSearchJob(list[i], country, 3);
       p.done++;
       p.created += r.created;
       p.updated += r.updated;
@@ -675,7 +688,8 @@
       }
       if (r.error && !r.detected) p.message = `«${r.q}»: ${r.error}`;
       onProgress({ ...p });
-      if (i < list.length - 1 && !isCancelled()) await new Promise((res) => setTimeout(res, GAP_MS));
+      const gap = r.limited ? GAP_MS * 3 : GAP_MS;
+      if (i < list.length - 1 && !isCancelled()) await new Promise((res) => setTimeout(res, gap));
     }
     p.running = false;
     p.current = null;
@@ -800,7 +814,9 @@
         distinctFormats: r.landingKey ? g.formats : 1,
         landingKind: r.landingDomain ? landingKind(r.landingDomain) : null,
         landingDomainOnly: !r.linkUrl,
-        launchWeeks: r.landingKey ? g.weeks : r.startDate ? 1 : 0
+        launchWeeks: r.landingKey ? g.weeks : r.startDate ? 1 : 0,
+        impressionRank: r.impressionRank ?? null,
+        impressionQuery: r.impressionQuery ?? null
       });
       perAd.set(r.id, { score: result.score, signals: result.signals });
     }
@@ -982,6 +998,7 @@
       euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
       sources,
       queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
+      ...bestRank(e, ctx, countries),
       isManual: e ? e.isManual && ctx.source === "manual" : ctx.source === "manual",
       partial,
       score: e?.score ?? 0,
@@ -991,6 +1008,25 @@
       updatedAt: ctx.now
     };
     return { record, weak };
+  }
+  function bestRank(e, ctx, countries) {
+    const prev = {
+      impressionRank: e?.impressionRank ?? null,
+      impressionQuery: e?.impressionQuery ?? null,
+      impressionCountry: e?.impressionCountry ?? null,
+      impressionAt: e?.impressionAt ?? null
+    };
+    const rank = ctx.rank && ctx.rank > 0 ? Math.round(ctx.rank) : null;
+    if (!rank) return prev;
+    const next = {
+      impressionRank: rank,
+      impressionQuery: ctx.query?.trim().toLowerCase().slice(0, 80) ?? null,
+      impressionCountry: countries[0] ?? null,
+      impressionAt: ctx.now
+    };
+    const stale = !prev.impressionAt || Date.parse(ctx.now) - Date.parse(prev.impressionAt) > 30 * 864e5;
+    if (!prev.impressionRank || stale || prev.impressionQuery === next.impressionQuery || rank < prev.impressionRank) return next;
+    return prev;
   }
   function mergeAdvertiser(existing, ad, record, weak, now) {
     const adv = ad.advertiser ?? {};
@@ -1289,6 +1325,11 @@
     }
     return { ads, countries };
   }
+  function sanitizeRanks(r) {
+    const out = {};
+    for (const [id, n] of Object.entries(r).slice(0, 3e3)) if (/^\d{5,25}$/.test(id) && Number.isFinite(n) && n > 0) out[id] = Math.round(n);
+    return out;
+  }
   var LocalStore = class _LocalStore {
     constructor(idb) {
       this.idb = idb;
@@ -1340,7 +1381,13 @@
       const touched = /* @__PURE__ */ new Set();
       for (const ad of batch.ads) {
         const existing = await this.get("ads", ad.id);
-        const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, query: opts.query, now });
+        const { record, weak } = mergeAd(existing, ad, {
+          source: opts.source,
+          queryCountries: opts.queryCountries,
+          query: opts.query,
+          rank: opts.ranks?.[ad.id] ?? null,
+          now
+        });
         const advExisting = await this.get("advertisers", ad.pageId);
         const adv = mergeAdvertiser(advExisting, ad, record, weak, now);
         const tx2 = this.idb.transaction(["ads", "advertisers"], "readwrite");
@@ -1374,6 +1421,7 @@
         source: "extension",
         queryCountries: countries,
         query: p.query?.q ?? null,
+        ranks: p.query?.sort === "total_impressions" && p.ranks ? sanitizeRanks(p.ranks) : void 0,
         context: { q: p.query?.q ?? null, country: countries[0] ?? null }
       });
     }
@@ -1556,7 +1604,11 @@
     newest: { label: "Más recientes", fn: (a, b) => (b.startDate ?? "").localeCompare(a.startDate ?? "") },
     variants: { label: "Más variantes", fn: (a, b) => (b.collationCount ?? 1) - (a.collationCount ?? 1) || b.score - a.score },
     advertiser: { label: "Anunciantes con más anuncios", fn: (a, b) => b.advActive - a.advActive || b.score - a.score },
-    seen: { label: "Vistos recientemente", fn: (a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt) }
+    seen: { label: "Vistos recientemente", fn: (a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt) },
+    views: {
+      label: "Más vistos (ranking de Meta)",
+      fn: (a, b) => (a.impressionRank ?? 1e9) - (b.impressionRank ?? 1e9) || b.score - a.score
+    }
   };
   async function load() {
     const store = state.store;
@@ -1679,6 +1731,7 @@
           { class: "chips" },
           ad.niche ? chip(nicheLabel(ad.niche), "chip-accent") : null,
           chip(FORMAT_LABELS[ad.format] ?? ad.format),
+          ad.impressionRank && ad.impressionRank <= 30 ? chip(`Top #${ad.impressionRank} vistos`, "chip-hot") : null,
           (ad.collationCount ?? 1) > 1 ? chip(`${ad.collationCount} copias activas`, "chip-strong") : null,
           ad.platforms.map((p) => chip(PLATFORM_LABELS[p]?.short ?? p)),
           ad.countries.slice(0, 3).map((c) => chip(c)),
@@ -2147,10 +2200,18 @@
         h(
           "p",
           { class: "muted small" },
-          `Cada búsqueda abre la Biblioteca en una pestaña de fondo de tu Chrome, guarda lo que carga y la cierra. Máximo ${MAX_PER_HOUR} búsquedas por hora (te quedan ${state.searchLeft}). Si Meta limita el acceso o pide iniciar sesión, se detiene sola.`
+          `Cada búsqueda abre la Biblioteca en una pestaña de fondo de tu Chrome, ordenada por impresiones totales (los más vistos primero), guarda lo que carga y la cierra. Máximo ${MAX_PER_HOUR} búsquedas por hora (te quedan ${state.searchLeft}). Si Meta limita el acceso o pide iniciar sesión, se detiene sola. Meta no publica ventas: los «más vistos» salen de su propio orden por impresiones.`
         )
       ),
       active.length ? h("section", { class: "stack" }, h("h2", null, "Categorías"), nicheCards()) : null,
+      row(
+        "Más vistos según Meta",
+        [...active].filter((a) => a.impressionRank).sort(SORTS.views.fn).slice(0, 8),
+        () => {
+          state.f = { ...state.f, sort: "views" };
+          filterBy({});
+        }
+      ),
       row("Escalando ahora", [...active].sort(SORTS.score.fn).slice(0, 8), () => {
         state.f = { ...state.f, sort: "score" };
         filterBy({});
@@ -2263,6 +2324,10 @@
                 fact("Formato", FORMAT_LABELS[ad.format] ?? ad.format),
                 fact("Copias activas", ad.collationCount ? `${ad.collationCount} anuncios con esta creatividad` : "—"),
                 ad.queries?.length ? fact("Encontrado en búsquedas", ad.queries.join(", ")) : null,
+                ad.impressionRank ? fact(
+                  "Ranking de impresiones",
+                  `#${ad.impressionRank} en «${ad.impressionQuery ?? ""}»${ad.impressionCountry ? ` (${countryName(ad.impressionCountry)})` : ""} · ${timeAgo(ad.impressionAt)}`
+                ) : null,
                 fact("Nicho", `${nicheLabel(ad.niche)}${ad.nicheConfidence ? ` · ${Math.round(ad.nicheConfidence * 100)}%` : ""}`),
                 ad.nicheTerms.length ? fact("Señales del nicho", ad.nicheTerms.slice(0, 5).join(", ")) : null,
                 fact("Primera vez visto", fmtDate(ad.firstSeenAt)),

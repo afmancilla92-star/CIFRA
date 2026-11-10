@@ -30,6 +30,8 @@ describe("puntuación de oportunidad", () => {
       distinctFormats: 3,
       landingKind: "web",
       launchWeeks: 8,
+      impressionRank: 1,
+      impressionQuery: "zapatillas",
     });
     expect(r.score).toBe(100);
     expect(r.signals.map((s) => s.key)).toEqual([
@@ -40,6 +42,7 @@ describe("puntuación de oportunidad", () => {
       "creative_diversity",
       "landing",
       "continuity",
+      "impressions",
     ]);
     expect(r.signals.reduce((s, x) => s + x.max, 0)).toBe(100);
     for (const s of r.signals) expect(s.explanation.length).toBeGreaterThan(20);
@@ -55,6 +58,13 @@ describe("puntuación de oportunidad", () => {
     expect(s(7)).toBeLessThan(s(30));
     expect(s(30)).toBeLessThan(s(90));
     expect(s(90)).toBe(s(400));
+  });
+
+  it("el ranking de impresiones suma más cuanto mejor es la posición", () => {
+    const pts = (rank: number | null) => computeScore({ ...base, impressionRank: rank }).signals.find((x) => x.key === "impressions")!.points;
+    expect(pts(1)).toBeGreaterThan(pts(5));
+    expect(pts(5)).toBeGreaterThan(pts(50));
+    expect(pts(null)).toBe(0);
   });
 
   it("la landing solo con dominio puntúa menos que la URL completa", () => {

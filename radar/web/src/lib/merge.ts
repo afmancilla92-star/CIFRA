@@ -42,6 +42,11 @@ export interface AdRecord {
   sources: SourceKind[];
   /** Búsquedas (palabras clave) en las que apareció el anuncio. */
   queries?: string[];
+  /** Mejor posición en una búsqueda ordenada por impresiones totales (1 = más visto). */
+  impressionRank?: number | null;
+  impressionQuery?: string | null;
+  impressionCountry?: string | null;
+  impressionAt?: string | null;
   isManual: boolean;
   partial: boolean;
   score: number;
@@ -124,6 +129,8 @@ export interface MergeContext {
   queryCountries?: string[];
   /** Palabra clave de la búsqueda que trajo el anuncio. */
   query?: string | null;
+  /** Posición del anuncio en esa búsqueda ordenada por impresiones (si se ordenó así). */
+  rank?: number | null;
   /** ISO */
   now: string;
 }
@@ -212,6 +219,7 @@ export function mergeAd(existing: AdRecord | null, ad: RawAd, ctx: MergeContext)
     euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
     sources,
     queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
+    ...bestRank(e, ctx, countries),
     isManual: e ? e.isManual && ctx.source === "manual" : ctx.source === "manual",
     partial,
     score: e?.score ?? 0,
@@ -221,6 +229,31 @@ export function mergeAd(existing: AdRecord | null, ad: RawAd, ctx: MergeContext)
     updatedAt: ctx.now,
   };
   return { record, weak };
+}
+
+/**
+ * El ranking de impresiones se renueva con cada búsqueda nueva para la misma
+ * palabra clave (refleja el presente) y, entre búsquedas distintas, se conserva
+ * la mejor posición. Rankings de más de 30 días se reemplazan.
+ */
+function bestRank(e: AdRecord | null, ctx: MergeContext, countries: string[]) {
+  const prev = {
+    impressionRank: e?.impressionRank ?? null,
+    impressionQuery: e?.impressionQuery ?? null,
+    impressionCountry: e?.impressionCountry ?? null,
+    impressionAt: e?.impressionAt ?? null,
+  };
+  const rank = ctx.rank && ctx.rank > 0 ? Math.round(ctx.rank) : null;
+  if (!rank) return prev;
+  const next = {
+    impressionRank: rank,
+    impressionQuery: ctx.query?.trim().toLowerCase().slice(0, 80) ?? null,
+    impressionCountry: countries[0] ?? null,
+    impressionAt: ctx.now,
+  };
+  const stale = !prev.impressionAt || Date.parse(ctx.now) - Date.parse(prev.impressionAt) > 30 * 86_400_000;
+  if (!prev.impressionRank || stale || prev.impressionQuery === next.impressionQuery || rank < prev.impressionRank) return next;
+  return prev;
 }
 
 /** Datos del anunciante: se actualizan con cada observación sin perder lo ya conocido. */

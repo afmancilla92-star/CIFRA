@@ -144,3 +144,4 @@ details summary { cursor: pointer; color: var(--accent); font-weight: 600; margi
 .chip-strong { background: var(--accent); color: var(--accent-text); border-color: transparent; font-weight: 700; }
 .center-row { justify-content: center; margin: 12px 0; }
 h2 { font-size: 18px; }
+.chip-hot { background: #d9480f; color: #fff; border-color: transparent; font-weight: 700; }

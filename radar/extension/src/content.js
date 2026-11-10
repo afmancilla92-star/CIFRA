@@ -26,6 +26,7 @@
   let sending = false;
   let lastMessage = "";
   let blocked = null; // "rate_limit" | "login" cuando Meta limita o pide iniciar sesión
+  let jobRanks = null; // posición de cada anuncio en una búsqueda del radar ordenada por impresiones
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function addNodes(nodes) {
@@ -80,6 +81,7 @@
       adType: p.get("ad_type"),
       mediaType: p.get("media_type"),
       pageId: p.get("view_all_page_id"),
+      sort: p.get("sort_data[mode]"),
     };
   }
 
@@ -164,6 +166,7 @@
           query: queryContext(),
           nodes: chunk.map(([, n]) => n),
           domCards: b === 0 ? domCards : [],
+          ranks: jobRanks || undefined,
         };
         const res = await chrome.runtime.sendMessage({ type: "radar:send", payload });
         if (!res || !res.ok) {
@@ -276,6 +279,21 @@
   // lo haría una persona, se guardan y se avisa al radar, que cierra la pestaña.
   // Nunca se resuelven CAPTCHAs ni se inicia sesión: si Meta limita o pide
   // iniciar sesión, la búsqueda se detiene y se informa.
+  // Orden en que la Biblioteca entregó los resultados (las copias de una misma
+  // creatividad comparten posición). Solo se usa en pestañas abiertas por el
+  // radar, que contienen una única búsqueda.
+  function computeRanks() {
+    const ranks = {};
+    const groups = new Map();
+    let next = 0;
+    for (const [id, n] of buffer) {
+      const g = n.collation_id ? `c${n.collation_id}` : id;
+      if (!groups.has(g)) groups.set(g, ++next);
+      ranks[id] = groups.get(g);
+    }
+    return ranks;
+  }
+
   function looksLikeLogin() {
     return Boolean(document.querySelector('input[name="email"], input[name="pass"], form[action*="login"]'));
   }
@@ -298,14 +316,19 @@
       await sleep(3500);
     }
     let res = { ok: true, created: 0, updated: 0 };
+    jobRanks = computeRanks();
     if (buffer.size) res = await send({ all: true });
+    // La página hace varias consultas; si alguna fue limitada pero los anuncios
+    // llegaron, no es un bloqueo: se avisa como «limitado» para ir más despacio.
+    const limited = Boolean(blocked && buffer.size);
     await chrome.runtime.sendMessage({
       type: "radar:jobDone",
       jobId: job.id,
       detected: buffer.size,
       created: res.created || 0,
       updated: res.updated || 0,
-      blocked,
+      blocked: limited ? null : blocked,
+      limited,
       error: res.ok ? null : res.error,
     }).catch(() => {});
   }

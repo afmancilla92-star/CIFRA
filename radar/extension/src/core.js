@@ -260,8 +260,8 @@ var CifraCore = (() => {
     signals.push({
       key: "longevity",
       label: "Días activos",
-      max: 30,
-      points: round1(30 * clamp01(Math.log(1 + d) / Math.log(1 + 90))),
+      max: 25,
+      points: round1(25 * clamp01(Math.log(1 + d) / Math.log(1 + 90))),
       observed: i.daysActive === null ? "Fecha de inicio desconocida" : plural(d, "día", "días"),
       explanation: "Cuanto más tiempo mantiene el anunciante un anuncio en circulación, mayor es la señal de continuidad. Alcanza el máximo a los 90 días."
     });
@@ -309,19 +309,19 @@ var CifraCore = (() => {
     let landingPts = 0;
     let landingObs = "Sin destino identificado";
     if (i.landingKind === "web") {
-      landingPts = i.landingDomainOnly ? 7 : 10;
+      landingPts = i.landingDomainOnly ? 3.5 : 5;
       landingObs = i.landingDomainOnly ? "Dominio visible (sin URL completa)" : "Landing page identificada";
     } else if (i.landingKind === "app_store") {
-      landingPts = 6;
+      landingPts = 3;
       landingObs = "Tienda de aplicaciones";
     } else if (i.landingKind) {
-      landingPts = 3;
+      landingPts = 1.5;
       landingObs = i.landingKind === "messaging" ? "Mensajería (WhatsApp/Messenger)" : "Red social";
     }
     signals.push({
       key: "landing",
       label: "Landing page disponible",
-      max: 10,
+      max: 5,
       points: landingPts,
       observed: landingObs,
       explanation: "Un destino web identificable permite analizar la oferta completa y agrupar todos los anuncios que llevan a la misma página."
@@ -335,6 +335,16 @@ var CifraCore = (() => {
       observed: `${i.isActive ? "Sigue activo" : "Ya no circula"} · lanzamientos en ${plural(w, "semana", "semanas")} distintas`,
       explanation: "Si el anunciante sigue lanzando anuncios hacia el mismo destino en semanas distintas, la campaña tiene continuidad en el tiempo."
     });
+    const rank = i.impressionRank && i.impressionRank > 0 ? Math.round(i.impressionRank) : null;
+    const rankPts = !rank ? 0 : rank === 1 ? 10 : rank <= 3 ? 9 : rank <= 10 ? 7.5 : rank <= 30 ? 5.5 : rank <= 60 ? 3.5 : 1.5;
+    signals.push({
+      key: "impressions",
+      label: "Más visto (ranking de Meta)",
+      max: 10,
+      points: rankPts,
+      observed: rank ? `Top #${rank} en impresiones${i.impressionQuery ? ` para «${i.impressionQuery}»` : ""}` : "Sin ranking de impresiones (búscalo desde el radar para obtenerlo)",
+      explanation: "Posición del anuncio cuando la Biblioteca ordena la búsqueda por impresiones totales. Meta solo publica el orden, no cifras de vistas ni de ventas."
+    });
     const score = Math.round(signals.reduce((s, x) => s + x.points, 0));
     return { score: Math.max(0, Math.min(100, score)), signals };
   }
@@ -343,7 +353,7 @@ var CifraCore = (() => {
     if (score >= 40) return { label: "Señales moderadas", tone: "mid" };
     return { label: "Señales bajas", tone: "low" };
   }
-  var SCORE_DISCLAIMER = "Puntuación orientativa basada solo en señales públicas observables (tiempo activo, variantes, volumen, repetición, diversidad, destino y continuidad). No mide ventas, conversiones ni rentabilidad, y no indica que un anuncio sea ganador.";
+  var SCORE_DISCLAIMER = "Puntuación orientativa basada solo en señales públicas observables (tiempo activo, copias, volumen, repetición, diversidad, destino, continuidad y ranking de impresiones de Meta). No mide ventas, conversiones ni rentabilidad, y no indica que un anuncio sea ganador.";
 
   // src/lib/advertiser-stats.ts
   var NO_LANDING = "__sin_destino__";
@@ -381,7 +391,9 @@ var CifraCore = (() => {
         distinctFormats: r.landingKey ? g.formats : 1,
         landingKind: r.landingDomain ? landingKind(r.landingDomain) : null,
         landingDomainOnly: !r.linkUrl,
-        launchWeeks: r.landingKey ? g.weeks : r.startDate ? 1 : 0
+        launchWeeks: r.landingKey ? g.weeks : r.startDate ? 1 : 0,
+        impressionRank: r.impressionRank ?? null,
+        impressionQuery: r.impressionQuery ?? null
       });
       perAd.set(r.id, { score: result.score, signals: result.signals });
     }
@@ -792,6 +804,7 @@ var CifraCore = (() => {
       euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
       sources,
       queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
+      ...bestRank(e, ctx, countries),
       isManual: e ? e.isManual && ctx.source === "manual" : ctx.source === "manual",
       partial,
       score: e?.score ?? 0,
@@ -801,6 +814,25 @@ var CifraCore = (() => {
       updatedAt: ctx.now
     };
     return { record, weak };
+  }
+  function bestRank(e, ctx, countries) {
+    const prev = {
+      impressionRank: e?.impressionRank ?? null,
+      impressionQuery: e?.impressionQuery ?? null,
+      impressionCountry: e?.impressionCountry ?? null,
+      impressionAt: e?.impressionAt ?? null
+    };
+    const rank = ctx.rank && ctx.rank > 0 ? Math.round(ctx.rank) : null;
+    if (!rank) return prev;
+    const next = {
+      impressionRank: rank,
+      impressionQuery: ctx.query?.trim().toLowerCase().slice(0, 80) ?? null,
+      impressionCountry: countries[0] ?? null,
+      impressionAt: ctx.now
+    };
+    const stale = !prev.impressionAt || Date.parse(ctx.now) - Date.parse(prev.impressionAt) > 30 * 864e5;
+    if (!prev.impressionRank || stale || prev.impressionQuery === next.impressionQuery || rank < prev.impressionRank) return next;
+    return prev;
   }
   function mergeAdvertiser(existing, ad, record, weak, now) {
     const adv = ad.advertiser ?? {};
@@ -1164,6 +1196,11 @@ var CifraCore = (() => {
     }
     return { ads, countries };
   }
+  function sanitizeRanks(r) {
+    const out = {};
+    for (const [id, n] of Object.entries(r).slice(0, 3e3)) if (/^\d{5,25}$/.test(id) && Number.isFinite(n) && n > 0) out[id] = Math.round(n);
+    return out;
+  }
   var LocalStore = class _LocalStore {
     constructor(idb) {
       this.idb = idb;
@@ -1215,7 +1252,13 @@ var CifraCore = (() => {
       const touched = /* @__PURE__ */ new Set();
       for (const ad of batch.ads) {
         const existing = await this.get("ads", ad.id);
-        const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, query: opts.query, now });
+        const { record, weak } = mergeAd(existing, ad, {
+          source: opts.source,
+          queryCountries: opts.queryCountries,
+          query: opts.query,
+          rank: opts.ranks?.[ad.id] ?? null,
+          now
+        });
         const advExisting = await this.get("advertisers", ad.pageId);
         const adv = mergeAdvertiser(advExisting, ad, record, weak, now);
         const tx2 = this.idb.transaction(["ads", "advertisers"], "readwrite");
@@ -1249,6 +1292,7 @@ var CifraCore = (() => {
         source: "extension",
         queryCountries: countries,
         query: p.query?.q ?? null,
+        ranks: p.query?.sort === "total_impressions" && p.ranks ? sanitizeRanks(p.ranks) : void 0,
         context: { q: p.query?.q ?? null, country: countries[0] ?? null }
       });
     }

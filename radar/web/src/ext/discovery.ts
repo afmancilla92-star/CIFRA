@@ -31,6 +31,7 @@ const GAP_MS = 6000;
 const JOB_TIMEOUT_MS = 90_000;
 
 export function librarySearchUrl(q: string, country: string) {
+  // Orden «Impresiones totales» de la Biblioteca: los anuncios más vistos primero.
   const p = new URLSearchParams({
     active_status: "active",
     ad_type: "all",
@@ -38,6 +39,8 @@ export function librarySearchUrl(q: string, country: string) {
     q,
     search_type: "keyword_unordered",
     media_type: "all",
+    "sort_data[mode]": "total_impressions",
+    "sort_data[direction]": "desc",
   });
   return `https://www.facebook.com/ads/library/?${p.toString()}`;
 }
@@ -48,6 +51,8 @@ export interface JobResult {
   created: number;
   updated: number;
   blocked: string | null;
+  /** Meta limitó alguna consulta de la página pero los anuncios llegaron: conviene ir más despacio. */
+  limited?: boolean;
   error: string | null;
 }
 
@@ -100,6 +105,7 @@ export async function runSearchJob(q: string, country: string, scrolls = 2): Pro
           created: Number(msg.created) || 0,
           updated: Number(msg.updated) || 0,
           blocked: (msg.blocked as string) || null,
+          limited: Boolean(msg.limited),
           error: (msg.error as string) || null,
         });
       }
@@ -144,7 +150,7 @@ export async function runDiscovery(
     }
     p.current = list[i]!;
     onProgress({ ...p });
-    const r = await runSearchJob(list[i]!, country, 2);
+    const r = await runSearchJob(list[i]!, country, 3);
     p.done++;
     p.created += r.created;
     p.updated += r.updated;
@@ -155,7 +161,9 @@ export async function runDiscovery(
     }
     if (r.error && !r.detected) p.message = `«${r.q}»: ${r.error}`;
     onProgress({ ...p });
-    if (i < list.length - 1 && !isCancelled()) await new Promise((res) => setTimeout(res, GAP_MS));
+    // Si Meta empezó a limitar alguna consulta, se espera más entre búsquedas.
+    const gap = r.limited ? GAP_MS * 3 : GAP_MS;
+    if (i < list.length - 1 && !isCancelled()) await new Promise((res) => setTimeout(res, gap));
   }
   p.running = false;
   p.current = null;

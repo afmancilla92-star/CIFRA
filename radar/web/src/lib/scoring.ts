@@ -27,6 +27,12 @@ export interface ScoreInput {
   landingDomainOnly: boolean;
   /** Semanas distintas en que el anunciante lanzó anuncios hacia el mismo destino. */
   launchWeeks: number;
+  /**
+   * Mejor posición del anuncio cuando la Biblioteca ordena una búsqueda por
+   * «Impresiones totales» (1 = el más visto). Meta no publica cifras, solo el orden.
+   */
+  impressionRank?: number | null;
+  impressionQuery?: string | null;
 }
 
 export interface ScoreResult {
@@ -41,13 +47,13 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function computeScore(i: ScoreInput): ScoreResult {
   const signals: ScoreSignal[] = [];
 
-  // 1. Días activos (30)
+  // 1. Días activos (25)
   const d = i.daysActive ?? 0;
   signals.push({
     key: "longevity",
     label: "Días activos",
-    max: 30,
-    points: round1(30 * clamp01(Math.log(1 + d) / Math.log(1 + 90))),
+    max: 25,
+    points: round1(25 * clamp01(Math.log(1 + d) / Math.log(1 + 90))),
     observed: i.daysActive === null ? "Fecha de inicio desconocida" : plural(d, "día", "días"),
     explanation:
       "Cuanto más tiempo mantiene el anunciante un anuncio en circulación, mayor es la señal de continuidad. Alcanza el máximo a los 90 días.",
@@ -106,23 +112,23 @@ export function computeScore(i: ScoreInput): ScoreResult {
       "Creatividades y formatos distintos que el anunciante usa hacia el mismo destino. Probar variaciones es típico de campañas que se optimizan activamente.",
   });
 
-  // 6. Landing page disponible (10)
+  // 6. Landing page disponible (5)
   let landingPts = 0;
   let landingObs = "Sin destino identificado";
   if (i.landingKind === "web") {
-    landingPts = i.landingDomainOnly ? 7 : 10;
+    landingPts = i.landingDomainOnly ? 3.5 : 5;
     landingObs = i.landingDomainOnly ? "Dominio visible (sin URL completa)" : "Landing page identificada";
   } else if (i.landingKind === "app_store") {
-    landingPts = 6;
+    landingPts = 3;
     landingObs = "Tienda de aplicaciones";
   } else if (i.landingKind) {
-    landingPts = 3;
+    landingPts = 1.5;
     landingObs = i.landingKind === "messaging" ? "Mensajería (WhatsApp/Messenger)" : "Red social";
   }
   signals.push({
     key: "landing",
     label: "Landing page disponible",
-    max: 10,
+    max: 5,
     points: landingPts,
     observed: landingObs,
     explanation:
@@ -141,6 +147,21 @@ export function computeScore(i: ScoreInput): ScoreResult {
       "Si el anunciante sigue lanzando anuncios hacia el mismo destino en semanas distintas, la campaña tiene continuidad en el tiempo.",
   });
 
+  // 8. Impresiones (10): posición en el orden «Impresiones totales» de la Biblioteca.
+  const rank = i.impressionRank && i.impressionRank > 0 ? Math.round(i.impressionRank) : null;
+  const rankPts = !rank ? 0 : rank === 1 ? 10 : rank <= 3 ? 9 : rank <= 10 ? 7.5 : rank <= 30 ? 5.5 : rank <= 60 ? 3.5 : 1.5;
+  signals.push({
+    key: "impressions",
+    label: "Más visto (ranking de Meta)",
+    max: 10,
+    points: rankPts,
+    observed: rank
+      ? `Top #${rank} en impresiones${i.impressionQuery ? ` para «${i.impressionQuery}»` : ""}`
+      : "Sin ranking de impresiones (búscalo desde el radar para obtenerlo)",
+    explanation:
+      "Posición del anuncio cuando la Biblioteca ordena la búsqueda por impresiones totales. Meta solo publica el orden, no cifras de vistas ni de ventas.",
+  });
+
   const score = Math.round(signals.reduce((s, x) => s + x.points, 0));
   return { score: Math.max(0, Math.min(100, score)), signals };
 }
@@ -152,4 +173,4 @@ export function scoreTier(score: number): { label: string; tone: "low" | "mid" |
 }
 
 export const SCORE_DISCLAIMER =
-  "Puntuación orientativa basada solo en señales públicas observables (tiempo activo, variantes, volumen, repetición, diversidad, destino y continuidad). No mide ventas, conversiones ni rentabilidad, y no indica que un anuncio sea ganador.";
+  "Puntuación orientativa basada solo en señales públicas observables (tiempo activo, copias, volumen, repetición, diversidad, destino, continuidad y ranking de impresiones de Meta). No mide ventas, conversiones ni rentabilidad, y no indica que un anuncio sea ganador.";

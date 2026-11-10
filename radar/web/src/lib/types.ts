@@ -67,7 +67,8 @@ export interface ScoreSignal {
     | "message_repetition"
     | "creative_diversity"
     | "landing"
-    | "continuity";
+    | "continuity"
+    | "impressions";
   label: string;
   points: number;
   max: number;

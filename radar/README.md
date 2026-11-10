@@ -24,6 +24,11 @@ radar/
 4. Explora: anuncios con filtros, orden por días activos, puntuación explicada, anunciantes, landing pages, favoritos y respaldo en JSON.
    Si prefieres buscar tú mismo en la Biblioteca, el panel de abajo a la derecha tiene **«Guardar en Cifra Radar»**.
 
+**Los más vistos:** las búsquedas del radar usan el orden **«Impresiones totales»** de la Biblioteca (los anuncios más vistos
+primero) y guardan la posición de cada anuncio («Top #3 en "zapatillas", Colombia»). Esa posición suma en la puntuación y alimenta
+la sección «Más vistos según Meta». Meta solo publica el orden, no cifras de vistas, y **nadie publica ventas**: lo que otras
+herramientas llaman «ganadores» se deduce de señales como estas (impresiones, días activos, copias activas).
+
 **Cómo busca por ti (igual que otras herramientas «puente»):** abre la Biblioteca en una pestaña de fondo de tu propio Chrome, con tu
 sesión, espera a que la página cargue sus resultados, baja un par de veces como lo haría una persona, guarda lo que cargó y cierra la
 pestaña. Hace como máximo 30 búsquedas por hora, deja una pausa entre búsquedas y **se detiene sola** si Meta limita el acceso o pide
@@ -74,17 +79,18 @@ Desde la fecha de inicio hasta hoy si sigue activo, o hasta la fecha de fin / ú
 
 ### Puntuación de oportunidad (orientativa)
 
-Suma de 7 señales observables, cada una con su explicación en la ficha del anuncio:
+Suma de 8 señales observables, cada una con su explicación en la ficha del anuncio:
 
 | Señal | Máx. | Cómo se mide |
 | --- | --- | --- |
-| Días activos | 30 | Curva logarítmica; máximo a los 90 días |
+| Días activos | 25 | Curva logarítmica; máximo a los 90 días |
 | Variantes del anuncio | 15 | «N anuncios usan esta creatividad y texto» o anuncios con el mismo mensaje normalizado |
 | Anuncios activos del anunciante | 15 | Anuncios activos simultáneos de la página (máximo con 30) |
 | Repetición de ofertas y mensajes | 10 | Mismo mensaje en otros anuncios + ofertas (descuento, envío gratis, 2x1…) repetidas |
 | Diversidad de creatividades | 10 | Creatividades y formatos distintos hacia el mismo destino |
-| Landing page disponible | 10 | URL completa (10), solo dominio (7), tienda de apps (6), mensajería/red social (3) |
+| Landing page disponible | 5 | URL completa (5), solo dominio (3,5), tienda de apps (3), mensajería/red social (1,5) |
 | Continuidad de la campaña | 10 | Sigue activo + lanzamientos en semanas distintas hacia el mismo destino |
+| Más visto (ranking de Meta) | 10 | Posición en una búsqueda ordenada por impresiones totales (#1 = 10 puntos) |
 
 Se muestra siempre con la aclaración de que **no mide ventas, conversiones ni rentabilidad** y no indica que un anuncio sea «ganador».
 

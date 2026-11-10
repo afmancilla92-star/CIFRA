@@ -41,7 +41,7 @@ describe("almacén local de la extensión", () => {
     const ads = await store.allAds();
     const a = ads.find((x) => x.id === "110000000000001")!;
     expect(a).toMatchObject({ countries: ["CO"], niche: "belleza", landingKey: "tienda.example/serum", format: "image" });
-    expect(a.scoreBreakdown).toHaveLength(7);
+    expect(a.scoreBreakdown).toHaveLength(8);
     expect(a.score).toBeGreaterThan(0);
 
     const advs = await store.allAdvertisers();
@@ -96,6 +96,27 @@ describe("migración de datos guardados", () => {
     await store.reindex();
     const [b] = await store.allAds();
     expect(b).toMatchObject({ landingKey: "api.whatsapp.com/send?phone=573000000001", niche: "moda" });
+    store.close();
+  });
+});
+
+describe("ranking de impresiones", () => {
+  it("guarda la posición solo si la búsqueda está ordenada por impresiones", async () => {
+    const store = await LocalStore.open(new IDBFactory());
+    const nodes = payload.nodes;
+    await store.ingestExtensionPayload({
+      ...payload,
+      query: { country: "CO", q: "serum", sort: "total_impressions" },
+      ranks: { "110000000000001": 1, "110000000000002": 1, "110000000000003": 2 },
+    });
+    await store.ingestExtensionPayload({ ...payload, nodes: nodes.slice(2), query: { country: "CO", q: "zapatillas" }, ranks: { "110000000000003": 1 } });
+    const ads = await store.allAds();
+    const byId = new Map(ads.map((a) => [a.id, a]));
+    expect(byId.get("110000000000001")).toMatchObject({ impressionRank: 1, impressionQuery: "serum", impressionCountry: "CO" });
+    // La segunda búsqueda no estaba ordenada por impresiones: no cambia el ranking.
+    expect(byId.get("110000000000003")).toMatchObject({ impressionRank: 2, impressionQuery: "serum" });
+    const signal = byId.get("110000000000001")!.scoreBreakdown.find((s) => s.key === "impressions")!;
+    expect(signal.observed).toContain("Top #1");
     store.close();
   });
 });

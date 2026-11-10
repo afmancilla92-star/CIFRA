@@ -69,7 +69,7 @@ describe("pipeline de ingesta", () => {
     expect(a.language).toBe("es");
     expect(a.offers).toContain("Envío gratis");
     expect(a.mediaExpiresAt).toMatch(/^20\d\d-/);
-    expect(a.scoreBreakdown).toHaveLength(7);
+    expect(a.scoreBreakdown).toHaveLength(8);
     expect(a.score).toBeGreaterThan(0);
     expect(a.daysActive).toBeGreaterThan(30);
   });

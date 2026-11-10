@@ -94,6 +94,10 @@ const SORTS: Record<string, { label: string; fn: (a: View, b: View) => number }>
   variants: { label: "Más variantes", fn: (a, b) => (b.collationCount ?? 1) - (a.collationCount ?? 1) || b.score - a.score },
   advertiser: { label: "Anunciantes con más anuncios", fn: (a, b) => b.advActive - a.advActive || b.score - a.score },
   seen: { label: "Vistos recientemente", fn: (a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt) },
+  views: {
+    label: "Más vistos (ranking de Meta)",
+    fn: (a, b) => (a.impressionRank ?? 1e9) - (b.impressionRank ?? 1e9) || b.score - a.score,
+  },
 };
 
 async function load() {
@@ -229,6 +233,7 @@ function card(ad: View) {
         { class: "chips" },
         ad.niche ? chip(nicheLabel(ad.niche), "chip-accent") : null,
         chip(FORMAT_LABELS[ad.format] ?? ad.format),
+        ad.impressionRank && ad.impressionRank <= 30 ? chip(`Top #${ad.impressionRank} vistos`, "chip-hot") : null,
         (ad.collationCount ?? 1) > 1 ? chip(`${ad.collationCount} copias activas`, "chip-strong") : null,
         ad.platforms.map((p) => chip(PLATFORM_LABELS[p]?.short ?? p)),
         ad.countries.slice(0, 3).map((c) => chip(c)),
@@ -717,10 +722,15 @@ function discoverView() {
       h(
         "p",
         { class: "muted small" },
-        `Cada búsqueda abre la Biblioteca en una pestaña de fondo de tu Chrome, guarda lo que carga y la cierra. Máximo ${MAX_PER_HOUR} búsquedas por hora (te quedan ${state.searchLeft}). Si Meta limita el acceso o pide iniciar sesión, se detiene sola.`,
+        `Cada búsqueda abre la Biblioteca en una pestaña de fondo de tu Chrome, ordenada por impresiones totales (los más vistos primero), guarda lo que carga y la cierra. Máximo ${MAX_PER_HOUR} búsquedas por hora (te quedan ${state.searchLeft}). Si Meta limita el acceso o pide iniciar sesión, se detiene sola. Meta no publica ventas: los «más vistos» salen de su propio orden por impresiones.`,
       ),
     ),
     active.length ? h("section", { class: "stack" }, h("h2", null, "Categorías"), nicheCards()) : null,
+    row(
+      "Más vistos según Meta",
+      [...active].filter((a) => a.impressionRank).sort(SORTS.views!.fn).slice(0, 8),
+      () => { state.f = { ...state.f, sort: "views" }; filterBy({}); },
+    ),
     row("Escalando ahora", [...active].sort(SORTS.score!.fn).slice(0, 8), () => { state.f = { ...state.f, sort: "score" }; filterBy({}); }),
     row("Más copias activas", [...active].filter((a) => (a.collationCount ?? 1) > 1).sort(SORTS.variants!.fn).slice(0, 8), () => { state.f = { ...state.f, sort: "variants" }; filterBy({}); }),
     row("Más tiempo activos", [...active].sort(SORTS.longest!.fn).slice(0, 8), () => { state.f = { ...state.f, sort: "longest" }; filterBy({}); }),
@@ -835,6 +845,12 @@ function openDetail(id: string) {
               fact("Formato", FORMAT_LABELS[ad.format] ?? ad.format),
               fact("Copias activas", ad.collationCount ? `${ad.collationCount} anuncios con esta creatividad` : "—"),
               ad.queries?.length ? fact("Encontrado en búsquedas", ad.queries.join(", ")) : null,
+              ad.impressionRank
+                ? fact(
+                    "Ranking de impresiones",
+                    `#${ad.impressionRank} en «${ad.impressionQuery ?? ""}»${ad.impressionCountry ? ` (${countryName(ad.impressionCountry)})` : ""} · ${timeAgo(ad.impressionAt)}`,
+                  )
+                : null,
               fact("Nicho", `${nicheLabel(ad.niche)}${ad.nicheConfidence ? ` · ${Math.round(ad.nicheConfidence * 100)}%` : ""}`),
               ad.nicheTerms.length ? fact("Señales del nicho", ad.nicheTerms.slice(0, 5).join(", ")) : null,
               fact("Primera vez visto", fmtDate(ad.firstSeenAt)),
