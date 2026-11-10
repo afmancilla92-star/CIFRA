@@ -17,10 +17,18 @@ radar/
 1. Descarga y descomprime la carpeta `radar/extension` (o el zip `cifra-radar-extension.zip`).
 2. En Chrome abre `chrome://extensions`, activa **Modo desarrollador**, pulsa **Cargar descomprimida** y elige esa carpeta
    (la que contiene `manifest.json`). Se abre sola la pestaña **Cifra Radar** con las instrucciones.
-3. Abre la [Biblioteca de Anuncios](https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&media_type=all),
-   busca (por ejemplo «zapatillas» en Colombia), desplázate y pulsa **«Guardar en Cifra Radar»** en el panel de abajo a la derecha.
-4. Pulsa **«Abrir mi radar»**: anuncios con filtros, orden por días activos, puntuación explicada, anunciantes, landing pages,
-   favoritos y respaldo en JSON.
+3. En la pestaña **Descubrir**, elige el país y pulsa **«Llenar mi radar ahora»**: Cifra Radar busca por ti en la Biblioteca de
+   Anuncios (una docena de nichos comerciales, editables) y te deja cientos de anuncios categorizados por nicho, con lo que está
+   «escalando», las copias activas y lo que más tiempo lleva activo. También puedes **buscar en la Biblioteca desde el radar** con
+   cualquier palabra clave.
+4. Explora: anuncios con filtros, orden por días activos, puntuación explicada, anunciantes, landing pages, favoritos y respaldo en JSON.
+   Si prefieres buscar tú mismo en la Biblioteca, el panel de abajo a la derecha tiene **«Guardar en Cifra Radar»**.
+
+**Cómo busca por ti (igual que otras herramientas «puente»):** abre la Biblioteca en una pestaña de fondo de tu propio Chrome, con tu
+sesión, espera a que la página cargue sus resultados, baja un par de veces como lo haría una persona, guarda lo que cargó y cierra la
+pestaña. Hace como máximo 30 búsquedas por hora, deja una pausa entre búsquedas y **se detiene sola** si Meta limita el acceso o pide
+iniciar sesión. No resuelve CAPTCHAs ni inicia sesión por ti. Ten en cuenta que las condiciones de uso de Meta restringen la recolección
+automatizada: úsalo con moderación y bajo tu responsabilidad.
 
 Todo queda guardado **solo en ese Chrome** (IndexedDB), con la misma lógica de fusión y puntuación que la plataforma web. La plataforma
 web es opcional: sirve para la sincronización automática con la API oficial, para compartir con un equipo o para tener los datos en un

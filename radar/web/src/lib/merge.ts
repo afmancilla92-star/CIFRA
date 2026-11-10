@@ -40,6 +40,8 @@ export interface AdRecord {
   nicheTerms: string[];
   euTotalReach: number | null;
   sources: SourceKind[];
+  /** Búsquedas (palabras clave) en las que apareció el anuncio. */
+  queries?: string[];
   isManual: boolean;
   partial: boolean;
   score: number;
@@ -120,6 +122,8 @@ export function prepareBatch(input: RawAd[]) {
 export interface MergeContext {
   source: SourceKind;
   queryCountries?: string[];
+  /** Palabra clave de la búsqueda que trajo el anuncio. */
+  query?: string | null;
   /** ISO */
   now: string;
 }
@@ -207,6 +211,7 @@ export function mergeAd(existing: AdRecord | null, ad: RawAd, ctx: MergeContext)
     nicheTerms,
     euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
     sources,
+    queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
     isManual: e ? e.isManual && ctx.source === "manual" : ctx.source === "manual",
     partial,
     score: e?.score ?? 0,

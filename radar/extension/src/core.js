@@ -496,7 +496,7 @@ var CifraCore = (() => {
     {
       id: "moda",
       label: "Moda y calzado",
-      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie"],
+      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie", "pantalones", "pantalon", "falda", "faldas", "conjunto", "conjuntos", "camisetas", "ropa deportiva", "shorts", "medias"],
       weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "nueva coleccion", "boutique"],
       categories: ["clothing", "fashion", "shoe", "apparel", "boutique", "ropa"]
     },
@@ -566,7 +566,7 @@ var CifraCore = (() => {
     {
       id: "alimentacion",
       label: "Alimentación y bebidas",
-      strong: ["restaurante", "delivery", "pizza", "hamburguesa", "sushi", "cafe", "cerveza", "vino", "vinos", "receta", "recetas", "comida", "alimentos", "snack", "chocolate", "panaderia", "pasteleria", "menu", "almuerzo", "cena", "bebida", "gourmet", "organico", "vegano"],
+      strong: ["restaurante", "delivery", "pizza", "hamburguesa", "sushi", "cafe", "cerveza", "vino", "vinos", "receta", "recetas", "comida", "alimentos", "snack", "chocolate", "panaderia", "pasteleria", "menu", "almuerzo", "cena", "bebida", "gourmet", "organico", "vegano", "mani", "crema de mani", "mantequilla de mani", "galletas", "granola", "cereal", "helado", "postre", "postres", "salsa", "arepas", "empanadas", "jugo", "jugos"],
       weak: ["sabor", "delicioso", "rico", "hambre", "food", "comer", "cocinar", "platos"],
       categories: ["restaurant", "food", "beverage", "bakery", "cafe", "grocery", "winery", "brewery"]
     },
@@ -791,6 +791,7 @@ var CifraCore = (() => {
       nicheTerms,
       euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
       sources,
+      queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
       isManual: e ? e.isManual && ctx.source === "manual" : ctx.source === "manual",
       partial,
       score: e?.score ?? 0,
@@ -957,7 +958,11 @@ var CifraCore = (() => {
     }
     return null;
   }
-  var cleanTemplate = (s) => s && /^\{\{[^}]+\}\}$/.test(s) ? null : s;
+  function cleanTemplate(s) {
+    if (!s) return s;
+    const out = s.replace(/\{\{[^{}]{1,80}\}\}/g, "").replace(/[ \t]{2,}/g, " ").replace(/^\s+|\s+$/g, "");
+    return out ? out : null;
+  }
   function collectMedia(snapshot) {
     const out = [];
     const seen = /* @__PURE__ */ new Set();
@@ -1210,7 +1215,7 @@ var CifraCore = (() => {
       const touched = /* @__PURE__ */ new Set();
       for (const ad of batch.ads) {
         const existing = await this.get("ads", ad.id);
-        const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, now });
+        const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, query: opts.query, now });
         const advExisting = await this.get("advertisers", ad.pageId);
         const adv = mergeAdvertiser(advExisting, ad, record, weak, now);
         const tx2 = this.idb.transaction(["ads", "advertisers"], "readwrite");
@@ -1243,6 +1248,7 @@ var CifraCore = (() => {
       return this.ingest(ads, {
         source: "extension",
         queryCountries: countries,
+        query: p.query?.q ?? null,
         context: { q: p.query?.q ?? null, country: countries[0] ?? null }
       });
     }
@@ -1284,12 +1290,20 @@ var CifraCore = (() => {
       const tx = this.idb.transaction("ads", "readwrite");
       for (const a of ads) {
         const landing = normalizeLanding(a.linkUrl, a.caption);
-        const next = { ...a, landingKey: landing?.key ?? null, landingDomain: landing?.domain ?? null, linkUrl: landing?.url ?? null };
+        const next = {
+          ...a,
+          body: cleanTemplate(a.body),
+          title: cleanTemplate(a.title),
+          linkDescription: cleanTemplate(a.linkDescription),
+          landingKey: landing?.key ?? null,
+          landingDomain: landing?.domain ?? null,
+          linkUrl: landing?.url ?? null
+        };
         if (a.nicheSource !== "ai" && a.nicheSource !== "manual") {
           const r = classifyByRules({
-            body: a.body,
-            title: a.title,
-            linkDescription: a.linkDescription,
+            body: next.body,
+            title: next.title,
+            linkDescription: next.linkDescription,
             caption: landing?.domain ?? a.caption,
             pageName: a.pageName,
             categories: advs.get(a.pageId)?.categories

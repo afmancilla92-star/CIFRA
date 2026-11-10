@@ -88,6 +88,12 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!msg || typeof msg.type !== "string") return;
   const fromLibrary = /^https:\/\/([a-z0-9-]+\.)?facebook\.com\/ads\/library/.test((sender.tab && sender.tab.url) || sender.url || "");
   const fromExtension = sender.id === chrome.runtime.id && !sender.tab;
+  // La pestaña de la Biblioteca pregunta si fue abierta por el radar para una búsqueda.
+  if (msg.type === "radar:whoami" && fromLibrary && sender.tab) {
+    const key = `job:${sender.tab.id}`;
+    chrome.storage.session.get(key).then((v) => reply(v[key] || null));
+    return true;
+  }
   if (msg.type === "radar:send" && fromLibrary) {
     saveCapture(msg.payload).then(reply);
     return true;

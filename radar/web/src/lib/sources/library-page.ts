@@ -41,8 +41,15 @@ function textOf(v: unknown): string | null {
   return null;
 }
 
-/** Plantillas de catálogo sin resolver ({{product.name}}) no aportan texto real. */
-const cleanTemplate = (s: string | null) => (s && /^\{\{[^}]+\}\}$/.test(s) ? null : s);
+/**
+ * Quita variables de catálogo sin resolver ({{product.name}}) que Meta deja
+ * en algunos anuncios dinámicos; si no queda texto real, devuelve null.
+ */
+export function cleanTemplate(s: string | null): string | null {
+  if (!s) return s;
+  const out = s.replace(/\{\{[^{}]{1,80}\}\}/g, "").replace(/[ \t]{2,}/g, " ").replace(/^\s+|\s+$/g, "");
+  return out ? out : null;
+}
 
 function collectMedia(snapshot: Obj): MediaItem[] {
   const out: MediaItem[] = [];

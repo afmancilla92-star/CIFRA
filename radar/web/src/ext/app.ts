@@ -11,12 +11,11 @@ import { SCORE_DISCLAIMER, scoreTier } from "../lib/scoring";
 import { countryName } from "../lib/sources/countries";
 import { normalizeText, truncate } from "../lib/text";
 import type { MediaItem } from "../lib/types";
+import { DEFAULT_QUERIES, DISCOVERY_COUNTRIES, MAX_PER_HOUR, blockedMessage, runDiscovery, runSearchJob, searchesLeft, type DiscoveryProgress } from "./discovery";
 import { LocalStore, RETENTION_DAYS, type Favorite, type LogEntry } from "./store";
 
-declare const chrome: {
-  runtime: { onMessage: { addListener(cb: (msg: { type?: string }) => void): void }; getManifest(): { version: string } };
-  tabs?: { create(o: { url: string }): void };
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const chrome: any;
 
 type Child = Node | string | number | null | undefined | false | Child[];
 type Attrs = Record<string, string | number | boolean | null | undefined | ((e: Event) => void)>;
@@ -53,7 +52,7 @@ interface View extends AdRecord {
   search: string;
 }
 
-type Tab = "ads" | "advertisers" | "landings" | "favorites" | "data";
+type Tab = "discover" | "ads" | "advertisers" | "landings" | "favorites" | "data";
 
 const state = {
   store: null as LocalStore | null,
@@ -61,7 +60,13 @@ const state = {
   advertisers: new Map<string, AdvertiserRecord>(),
   favorites: new Map<string, Favorite>(),
   log: [] as LogEntry[],
-  tab: "ads" as Tab,
+  tab: "discover" as Tab,
+  country: "CO",
+  queries: DEFAULT_QUERIES.join("\n"),
+  searchLeft: MAX_PER_HOUR,
+  disc: null as DiscoveryProgress | null,
+  cancel: false,
+  live: { q: "", running: false, message: "" },
   limit: 60,
   f: {
     q: "",
@@ -75,6 +80,7 @@ const state = {
     minScore: "",
     pageId: "",
     landing: "",
+    query: "",
     sort: "longest",
   },
   advQuery: "",
@@ -129,6 +135,7 @@ function filtered(): View[] {
       if (minScore && a.score < minScore) return false;
       if (f.pageId && a.pageId !== f.pageId) return false;
       if (f.landing && a.landingKey !== f.landing) return false;
+      if (f.query && !(a.queries ?? []).includes(f.query)) return false;
       return terms.every((t) => a.search.includes(t));
     })
     .sort(SORTS[f.sort]?.fn ?? SORTS.longest!.fn);
@@ -222,7 +229,7 @@ function card(ad: View) {
         { class: "chips" },
         ad.niche ? chip(nicheLabel(ad.niche), "chip-accent") : null,
         chip(FORMAT_LABELS[ad.format] ?? ad.format),
-        (ad.collationCount ?? 1) > 1 ? chip(`${ad.collationCount} variantes`) : null,
+        (ad.collationCount ?? 1) > 1 ? chip(`${ad.collationCount} copias activas`, "chip-strong") : null,
         ad.platforms.map((p) => chip(PLATFORM_LABELS[p]?.short ?? p)),
         ad.countries.slice(0, 3).map((c) => chip(c)),
         ad.partial ? chip("Parcial", "chip-warn") : null,
@@ -235,7 +242,7 @@ function card(ad: View) {
 }
 
 function filterBy(patch: Partial<typeof state.f>) {
-  state.f = { ...state.f, pageId: "", landing: "", ...patch, status: patch.pageId || patch.landing ? "all" : state.f.status };
+  state.f = { ...state.f, pageId: "", landing: "", query: "", ...patch, status: patch.pageId || patch.landing || patch.query ? "all" : state.f.status };
   state.tab = "ads";
   state.limit = 60;
   closeDetail();
@@ -258,15 +265,14 @@ function emptyState() {
     { class: "card empty" },
     h("h2", null, "Tu radar está vacío"),
     h("p", { class: "muted" }, "Cifra Radar guarda anuncios reales de la Biblioteca de Anuncios de Meta. Nunca muestra anuncios inventados."),
+    h("p", null, "Ve a «Descubrir» y pulsa «Llenar mi radar»: Cifra Radar buscará por ti en la Biblioteca de Anuncios y categorizará lo que encuentre."),
     h(
-      "ol",
-      null,
-      h("li", null, "Abre la Biblioteca de Anuncios y busca una palabra clave (por ejemplo, «zapatillas») en el país que te interese."),
-      h("li", null, "Desplázate un poco para cargar resultados."),
-      h("li", null, "Pulsa el botón verde «Guardar en Cifra Radar» del panel que aparece abajo a la derecha."),
-      h("li", null, "Vuelve a esta pestaña: los anuncios aparecen aquí, listos para filtrar y ordenar por antigüedad."),
+      "div",
+      { class: "row wrap center-row" },
+      h("button", { class: "btn btn-primary", onclick: () => { state.tab = "discover"; render(); } }, "Ir a Descubrir"),
+      h("a", { class: "btn", href: LIBRARY_HOME, target: "_blank", rel: "noopener" }, "Abrir la Biblioteca de Anuncios"),
     ),
-    h("a", { class: "btn btn-primary", href: LIBRARY_HOME, target: "_blank", rel: "noopener" }, "Abrir la Biblioteca de Anuncios"),
+    h("p", { class: "muted small" }, "También puedes buscar tú en la Biblioteca y pulsar «Guardar en Cifra Radar» en el panel de abajo a la derecha."),
   );
 }
 
@@ -302,10 +308,11 @@ function adsView() {
     select("Oferta", f.offer, facet(base.flatMap((a) => a.offers)).map(([v, n]) => [v, `${v} (${n})`]), set("offer"), "Cualquiera"),
     select("Días activos", f.minDays, [7, 14, 30, 60, 90, 180].map((d) => [String(d), `${d}+ días`]), set("minDays"), "Cualquiera"),
     select("Puntuación", f.minScore, [40, 55, 70, 85].map((d) => [String(d), `${d}+`]), set("minScore"), "Cualquiera"),
+    select("Búsqueda", f.query, facet(base.flatMap((a) => a.queries ?? [])).map(([v, n]) => [v, `«${v}» (${n})`]), set("query"), "Todas"),
   );
 
   const sort = select("Ordenar", f.sort, Object.entries(SORTS).map(([k, s]) => [k, s.label]), set("sort"), "—");
-  const active = f.pageId || f.landing;
+  const active = f.pageId || f.landing || f.query;
   return h(
     "div",
     null,
@@ -317,7 +324,8 @@ function adsView() {
           { class: "muted" },
           f.pageId ? `Anunciante: ${state.advertisers.get(f.pageId)?.name ?? f.pageId}. ` : "",
           f.landing ? `Landing: ${f.landing}. ` : "",
-          h("a", { href: "#", onclick: (e: Event) => { e.preventDefault(); state.f = { ...state.f, pageId: "", landing: "" }; render(); } }, "Quitar"),
+          f.query ? `Búsqueda: «${f.query}». ` : "",
+          h("a", { href: "#", onclick: (e: Event) => { e.preventDefault(); state.f = { ...state.f, pageId: "", landing: "", query: "" }; render(); } }, "Quitar"),
         )
       : null,
     h("div", { id: "results" }, resultsBlock(list)),
@@ -536,6 +544,189 @@ function dataView() {
   );
 }
 
+// ── Descubrir ──────────────────────────────────────────────────────────────
+
+function countrySelect() {
+  const s = h(
+    "select",
+    { class: "inline-select", "aria-label": "País" },
+    DISCOVERY_COUNTRIES.map((c) => h("option", { value: c, selected: c === state.country }, countryName(c))),
+  ) as HTMLSelectElement;
+  s.value = state.country;
+  s.addEventListener("change", () => {
+    state.country = s.value;
+    chrome.storage.local.set({ discoveryCountry: s.value }).catch(() => {});
+  });
+  return s;
+}
+
+async function startLiveSearch(q: string) {
+  q = q.trim();
+  if (!q || state.live.running || state.disc?.running) return;
+  if ((await searchesLeft()) <= 0) {
+    state.live.message = `Llegaste al límite de ${MAX_PER_HOUR} búsquedas por hora. Continúa más tarde.`;
+    render();
+    return;
+  }
+  state.live = { q, running: true, message: `Buscando «${q}» en la Biblioteca de ${countryName(state.country)}…` };
+  render();
+  const r = await runSearchJob(q, state.country, 3);
+  await load();
+  state.live = {
+    q,
+    running: false,
+    message: r.blocked ? blockedMessage(r.blocked) : r.detected ? `«${q}»: ${r.created} nuevos y ${r.updated} actualizados.` : `«${q}»: ${r.error ?? "no se encontraron anuncios"}.`,
+  };
+  state.searchLeft = await searchesLeft();
+  if (r.detected && !r.blocked) filterBy({ query: q.toLowerCase() });
+  else render();
+}
+
+async function startDiscovery() {
+  if (state.disc?.running || state.live.running) return;
+  const queries = state.queries.split(/\n+/).map((x) => x.trim()).filter(Boolean);
+  chrome.storage.local.set({ discoveryQueries: queries }).catch(() => {});
+  state.cancel = false;
+  await runDiscovery(
+    queries,
+    state.country,
+    async (p) => {
+      state.disc = p;
+      state.searchLeft = await searchesLeft();
+      await load();
+    },
+    () => state.cancel,
+  );
+  try {
+    localStorage.setItem("cifra-last-discovery", new Date().toISOString());
+  } catch {
+    /* sin almacenamiento */
+  }
+  await load();
+}
+
+function nicheCards() {
+  const base = state.ads.filter((a) => !a.isManual && a.isActive);
+  const groups = new Map<string, View[]>();
+  for (const a of base) groups.set(a.niche ?? "none", [...(groups.get(a.niche ?? "none") ?? []), a]);
+  const list = Array.from(groups.entries()).sort((a, b) => (a[0] === "none" ? 1 : b[0] === "none" ? -1 : b[1].length - a[1].length));
+  return h(
+    "div",
+    { class: "niche-grid" },
+    list.map(([niche, ads]) => {
+      const top = [...ads].sort(SORTS.score!.fn);
+      const thumbs = top.filter((a) => a.media[0]).slice(0, 3);
+      return h(
+        "article",
+        { class: "card niche-card", onclick: () => filterBy({ niche }) },
+        h("div", { class: "niche-thumbs" }, thumbs.map((a) => mediaThumb(a.media, libraryUrl(a.id)))),
+        h(
+          "div",
+          { class: "niche-body" },
+          h("div", { class: "strong" }, nicheLabel(niche === "none" ? null : niche)),
+          h("small", { class: "muted" }, `${fmtNum(ads.length)} anuncios activos · ${fmtNum(new Set(ads.map((a) => a.pageId)).size)} anunciantes`),
+        ),
+      );
+    }),
+  );
+}
+
+function row(title: string, list: View[], more: () => void) {
+  if (!list.length) return null;
+  return h(
+    "section",
+    { class: "stack" },
+    h("div", { class: "row between" }, h("h2", null, title), h("a", { href: "#", onclick: (e: Event) => { e.preventDefault(); more(); } }, "Ver todos →")),
+    h("div", { class: "grid" }, list.map(card)),
+  );
+}
+
+function discoverView() {
+  const active = state.ads.filter((a) => !a.isManual && a.isActive);
+  const busy = Boolean(state.disc?.running || state.live.running);
+  const liveInput = h("input", { type: "search", class: "search", placeholder: "Palabra clave: producto, marca, oferta…", value: state.live.q }) as HTMLInputElement;
+  liveInput.addEventListener("input", () => (state.live.q = liveInput.value));
+  liveInput.addEventListener("keydown", (e) => {
+    if ((e as KeyboardEvent).key === "Enter") void startLiveSearch(liveInput.value);
+  });
+  const queries = h("textarea", { class: "queries", rows: 6, "aria-label": "Búsquedas" }, state.queries) as HTMLTextAreaElement;
+  queries.addEventListener("input", () => (state.queries = queries.value));
+  const d = state.disc;
+  let last: string | null = null;
+  try {
+    last = localStorage.getItem("cifra-last-discovery");
+  } catch {
+    /* sin almacenamiento */
+  }
+  const pct = d && d.total ? Math.round((d.done / d.total) * 100) : 0;
+
+  return h(
+    "div",
+    { class: "stack" },
+    h(
+      "section",
+      { class: "hero card pad" },
+      h("h1", null, "Anuncios que están escalando"),
+      h(
+        "p",
+        { class: "muted" },
+        active.length
+          ? `${fmtNum(active.length)} anuncios activos de ${fmtNum(new Set(active.map((a) => a.pageId)).size)} anunciantes, categorizados por nicho.`
+          : "Llena tu radar con un clic: Cifra Radar busca por ti en la Biblioteca de Anuncios de Meta y categoriza lo que encuentra.",
+      ),
+      h(
+        "div",
+        { class: "toolbar" },
+        liveInput,
+        countrySelect(),
+        h("button", { class: "btn btn-primary", disabled: busy, onclick: () => void startLiveSearch(liveInput.value) }, state.live.running ? "Buscando…" : "Buscar en la Biblioteca"),
+      ),
+      state.live.message ? h("p", { class: "muted" }, state.live.message) : null,
+    ),
+    h(
+      "section",
+      { class: "card pad" },
+      h(
+        "div",
+        { class: "row between wrap" },
+        h(
+          "div",
+          null,
+          h("h2", null, "Llenar mi radar"),
+          h("small", { class: "muted" }, `Una búsqueda por línea en ${countryName(state.country)}. ${last ? `Última actualización: ${timeAgo(last)}.` : "Aún no lo has llenado."}`),
+        ),
+        d?.running
+          ? h("button", { class: "btn danger", onclick: () => { state.cancel = true; } }, "Detener")
+          : h("button", { class: "btn btn-primary", disabled: busy, onclick: () => void startDiscovery() }, active.length ? "Actualizar mi radar" : "Llenar mi radar ahora"),
+      ),
+      d
+        ? h(
+            "div",
+            { class: "progress" },
+            h("div", { class: "bar" }, h("i", { style: `width:${d.running ? Math.max(4, pct) : 100}%` })),
+            h(
+              "p",
+              { class: "muted" },
+              d.running
+                ? `Buscando «${d.current ?? ""}» (${d.done + 1} de ${d.total}) · ${fmtNum(d.created)} anuncios nuevos hasta ahora`
+                : d.message,
+            ),
+          )
+        : null,
+      h("details", null, h("summary", null, "Editar búsquedas"), queries),
+      h(
+        "p",
+        { class: "muted small" },
+        `Cada búsqueda abre la Biblioteca en una pestaña de fondo de tu Chrome, guarda lo que carga y la cierra. Máximo ${MAX_PER_HOUR} búsquedas por hora (te quedan ${state.searchLeft}). Si Meta limita el acceso o pide iniciar sesión, se detiene sola.`,
+      ),
+    ),
+    active.length ? h("section", { class: "stack" }, h("h2", null, "Categorías"), nicheCards()) : null,
+    row("Escalando ahora", [...active].sort(SORTS.score!.fn).slice(0, 8), () => { state.f = { ...state.f, sort: "score" }; filterBy({}); }),
+    row("Más copias activas", [...active].filter((a) => (a.collationCount ?? 1) > 1).sort(SORTS.variants!.fn).slice(0, 8), () => { state.f = { ...state.f, sort: "variants" }; filterBy({}); }),
+    row("Más tiempo activos", [...active].sort(SORTS.longest!.fn).slice(0, 8), () => { state.f = { ...state.f, sort: "longest" }; filterBy({}); }),
+  );
+}
+
 // ── Detalle ────────────────────────────────────────────────────────────────
 
 function closeDetail() {
@@ -642,7 +833,8 @@ function openDetail(id: string) {
               fact("Países", ad.countries.map(countryName).join(", ") || "—"),
               fact("Idioma", ad.language ? (LANGUAGE_NAMES[ad.language] ?? ad.language.toUpperCase()) : "—"),
               fact("Formato", FORMAT_LABELS[ad.format] ?? ad.format),
-              fact("Variantes", ad.collationCount ? `${ad.collationCount} versiones` : "—"),
+              fact("Copias activas", ad.collationCount ? `${ad.collationCount} anuncios con esta creatividad` : "—"),
+              ad.queries?.length ? fact("Encontrado en búsquedas", ad.queries.join(", ")) : null,
               fact("Nicho", `${nicheLabel(ad.niche)}${ad.nicheConfidence ? ` · ${Math.round(ad.nicheConfidence * 100)}%` : ""}`),
               ad.nicheTerms.length ? fact("Señales del nicho", ad.nicheTerms.slice(0, 5).join(", ")) : null,
               fact("Primera vez visto", fmtDate(ad.firstSeenAt)),
@@ -660,6 +852,7 @@ function openDetail(id: string) {
 // ── Estructura ─────────────────────────────────────────────────────────────
 
 const TABS: Array<[Tab, string]> = [
+  ["discover", "Descubrir"],
   ["ads", "Anuncios"],
   ["advertisers", "Anunciantes"],
   ["landings", "Landing pages"],
@@ -671,7 +864,9 @@ function render() {
   const root = document.getElementById("app")!;
   const total = state.ads.filter((a) => !a.isManual);
   const view =
-    state.tab === "ads"
+    state.tab === "discover"
+      ? discoverView()
+      : state.tab === "ads"
       ? adsView()
       : state.tab === "advertisers"
         ? advertisersView()
@@ -711,7 +906,7 @@ document.addEventListener("keydown", (e) => {
 (async () => {
   state.store = await LocalStore.open();
   // Aplica mejoras de clasificación de versiones nuevas a los anuncios ya guardados.
-  const DATA_VERSION = "2";
+  const DATA_VERSION = "3";
   try {
     if (localStorage.getItem("cifra-data-version") !== DATA_VERSION) {
       await state.store.reindex();
@@ -720,12 +915,20 @@ document.addEventListener("keydown", (e) => {
   } catch {
     /* sin localStorage: se reintenta en la próxima apertura */
   }
+  try {
+    const saved = await chrome.storage.local.get(["discoveryCountry", "discoveryQueries"]);
+    if (saved.discoveryCountry) state.country = saved.discoveryCountry;
+    if (Array.isArray(saved.discoveryQueries) && saved.discoveryQueries.length) state.queries = saved.discoveryQueries.join("\n");
+    state.searchLeft = await searchesLeft();
+  } catch {
+    /* fuera de la extensión (pruebas) */
+  }
   await state.store.purge();
   await state.store.recompute();
   await load();
   // La extensión avisa cuando guarda nuevas capturas.
   try {
-    chrome.runtime.onMessage.addListener((msg) => {
+    chrome.runtime.onMessage.addListener((msg: { type?: string }) => {
       if (msg?.type === "radar:updated") void load();
     });
   } catch {

@@ -126,3 +126,21 @@ td { padding: 7px 8px 7px 0; border-top: 1px solid var(--border); }
   .top-stats { display: none; }
   .gallery.two { grid-template-columns: 1fr; }
 }
+
+.hero h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }
+.hero .toolbar { margin: 14px 0 0; }
+.inline-select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; }
+.queries { width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+details summary { cursor: pointer; color: var(--accent); font-weight: 600; margin-top: 10px; }
+.progress { margin-top: 12px; }
+.progress .bar { height: 8px; }
+.niche-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.niche-card { overflow: hidden; cursor: pointer; transition: box-shadow .15s; }
+.niche-card:hover { box-shadow: 0 10px 30px -18px rgba(0, 0, 0, .45); }
+.niche-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-2); min-height: 76px; }
+.niche-thumbs .thumb { aspect-ratio: 1 / 1; }
+.niche-thumbs .thumb-empty { font-size: 0; padding: 0; }
+.niche-body { padding: 10px 12px; display: grid; gap: 2px; }
+.chip-strong { background: var(--accent); color: var(--accent-text); border-color: transparent; font-weight: 700; }
+.center-row { justify-content: center; margin: 12px 0; }
+h2 { font-size: 18px; }

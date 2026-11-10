@@ -7,7 +7,7 @@ import { computeAdvertiserStats } from "../lib/advertiser-stats";
 import { normalizeLanding } from "../lib/landing";
 import { mergeAd, mergeAdvertiser, prepareBatch, type AdRecord, type AdvertiserRecord } from "../lib/merge";
 import { classifyByRules } from "../lib/niche/rules";
-import { mapDomCard, mapLibraryNode, type DomCard } from "../lib/sources/library-page";
+import { cleanTemplate, mapDomCard, mapLibraryNode, type DomCard } from "../lib/sources/library-page";
 import { mapArchivedAd, type MetaArchivedAd } from "../lib/sources/meta-api";
 import type { RawAd, SourceKind } from "../lib/types";
 
@@ -153,14 +153,17 @@ export class LocalStore {
     await done(tx);
   }
 
-  async ingest(input: RawAd[], opts: { source: SourceKind; queryCountries?: string[]; context?: Record<string, unknown>; now?: Date }): Promise<LocalIngestResult> {
+  async ingest(
+    input: RawAd[],
+    opts: { source: SourceKind; queryCountries?: string[]; query?: string | null; context?: Record<string, unknown>; now?: Date },
+  ): Promise<LocalIngestResult> {
     const now = (opts.now ?? new Date()).toISOString();
     const batch = prepareBatch(input);
     const result: LocalIngestResult = { received: input.length, created: 0, updated: 0, skipped: batch.skipped, errors: batch.errors, ids: [] };
     const touched = new Set<string>();
     for (const ad of batch.ads) {
       const existing = await this.get<AdRecord>("ads", ad.id);
-      const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, now });
+      const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, query: opts.query, now });
       const advExisting = await this.get<AdvertiserRecord>("advertisers", ad.pageId);
       const adv = mergeAdvertiser(advExisting, ad, record, weak, now);
       const tx = this.idb.transaction(["ads", "advertisers"], "readwrite");
@@ -194,6 +197,7 @@ export class LocalStore {
     return this.ingest(ads, {
       source: "extension",
       queryCountries: countries,
+      query: p.query?.q ?? null,
       context: { q: p.query?.q ?? null, country: countries[0] ?? null },
     });
   }
@@ -237,12 +241,20 @@ export class LocalStore {
     const tx = this.idb.transaction("ads", "readwrite");
     for (const a of ads) {
       const landing = normalizeLanding(a.linkUrl, a.caption);
-      const next: AdRecord = { ...a, landingKey: landing?.key ?? null, landingDomain: landing?.domain ?? null, linkUrl: landing?.url ?? null };
+      const next: AdRecord = {
+        ...a,
+        body: cleanTemplate(a.body),
+        title: cleanTemplate(a.title),
+        linkDescription: cleanTemplate(a.linkDescription),
+        landingKey: landing?.key ?? null,
+        landingDomain: landing?.domain ?? null,
+        linkUrl: landing?.url ?? null,
+      };
       if (a.nicheSource !== "ai" && a.nicheSource !== "manual") {
         const r = classifyByRules({
-          body: a.body,
-          title: a.title,
-          linkDescription: a.linkDescription,
+          body: next.body,
+          title: next.title,
+          linkDescription: next.linkDescription,
           caption: landing?.domain ?? a.caption,
           pageName: a.pageName,
           categories: advs.get(a.pageId)?.categories,

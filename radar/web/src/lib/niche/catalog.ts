@@ -29,7 +29,7 @@ export const NICHES: NicheDef[] = [
   {
     id: "moda",
     label: "Moda y calzado",
-    strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie"],
+    strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie", "pantalones", "pantalon", "falda", "faldas", "conjunto", "conjuntos", "camisetas", "ropa deportiva", "shorts", "medias"],
     weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "nueva coleccion", "boutique"],
     categories: ["clothing", "fashion", "shoe", "apparel", "boutique", "ropa"],
   },
@@ -99,7 +99,7 @@ export const NICHES: NicheDef[] = [
   {
     id: "alimentacion",
     label: "Alimentación y bebidas",
-    strong: ["restaurante", "delivery", "pizza", "hamburguesa", "sushi", "cafe", "cerveza", "vino", "vinos", "receta", "recetas", "comida", "alimentos", "snack", "chocolate", "panaderia", "pasteleria", "menu", "almuerzo", "cena", "bebida", "gourmet", "organico", "vegano"],
+    strong: ["restaurante", "delivery", "pizza", "hamburguesa", "sushi", "cafe", "cerveza", "vino", "vinos", "receta", "recetas", "comida", "alimentos", "snack", "chocolate", "panaderia", "pasteleria", "menu", "almuerzo", "cena", "bebida", "gourmet", "organico", "vegano", "mani", "crema de mani", "mantequilla de mani", "galletas", "granola", "cereal", "helado", "postre", "postres", "salsa", "arepas", "empanadas", "jugo", "jugos"],
     weak: ["sabor", "delicioso", "rico", "hambre", "food", "comer", "cocinar", "platos"],
     categories: ["restaurant", "food", "beverage", "bakery", "cafe", "grocery", "winery", "brewery"],
   },

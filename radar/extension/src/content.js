@@ -25,6 +25,8 @@
   const sent = new Set();
   let sending = false;
   let lastMessage = "";
+  let blocked = null; // "rate_limit" | "login" cuando Meta limita o pide iniciar sesión
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function addNodes(nodes) {
     let added = 0;
@@ -54,11 +56,20 @@
 
   // Respuestas observadas por page-hook.js (mismo origen, misma pestaña).
   window.addEventListener("message", (e) => {
-    if (e.source !== window || !e.data || e.data.__cifraRadar !== 1 || e.data.kind !== "response") return;
+    if (e.source !== window || !e.data || e.data.__cifraRadar !== 1) return;
+    if (e.data.kind === "blocked") {
+      blocked = e.data.reason || "rate_limit";
+      lastMessage = "Meta limitó temporalmente las búsquedas. Espera un rato antes de seguir.";
+      render();
+      return;
+    }
+    if (e.data.kind !== "response") return;
     try {
       addNodes(C.extractFromText(e.data.text));
     } catch (_) {}
   });
+  // Avisa al observador de la página que ya puede entregar lo que guardó.
+  window.postMessage({ __cifraRadar: 1, kind: "ready" }, location.origin);
 
   function queryContext() {
     const p = new URLSearchParams(location.search);
@@ -259,8 +270,59 @@
 
   // Señal visible en la consola para confirmar que la extensión está activa en la página.
   console.info(`[Cifra Radar] extensión activa (v${VERSION}). Panel abajo a la derecha.`);
+  // ── Búsqueda pedida desde el radar ─────────────────────────────────────────
+  // El radar abre esta pestaña de fondo con una búsqueda; aquí se espera a que
+  // la propia Biblioteca cargue los resultados, se baja unas pocas veces como
+  // lo haría una persona, se guardan y se avisa al radar, que cierra la pestaña.
+  // Nunca se resuelven CAPTCHAs ni se inicia sesión: si Meta limita o pide
+  // iniciar sesión, la búsqueda se detiene y se informa.
+  function looksLikeLogin() {
+    return Boolean(document.querySelector('input[name="email"], input[name="pass"], form[action*="login"]'));
+  }
+
+  async function runJob(job) {
+    const started = Date.now();
+    while (Date.now() - started < 25000 && !buffer.size && !blocked) await sleep(1000);
+    if (!buffer.size && !blocked && looksLikeLogin()) blocked = "login";
+    // Espera a que la primera tanda termine de llegar.
+    let stable = 0;
+    let last = -1;
+    while (!blocked && buffer.size && stable < 2 && Date.now() - started < 35000) {
+      stable = buffer.size === last ? stable + 1 : 0;
+      last = buffer.size;
+      await sleep(1000);
+    }
+    const scrolls = Math.max(0, Math.min(5, Number(job.scrolls) || 0));
+    for (let i = 0; i < scrolls && !blocked && buffer.size; i++) {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await sleep(3500);
+    }
+    let res = { ok: true, created: 0, updated: 0 };
+    if (buffer.size) res = await send({ all: true });
+    await chrome.runtime.sendMessage({
+      type: "radar:jobDone",
+      jobId: job.id,
+      detected: buffer.size,
+      created: res.created || 0,
+      updated: res.updated || 0,
+      blocked,
+      error: res.ok ? null : res.error,
+    }).catch(() => {});
+  }
+
+  async function checkJob() {
+    for (let i = 0; i < 6; i++) {
+      try {
+        const job = await chrome.runtime.sendMessage({ type: "radar:whoami" });
+        if (job && job.id) return runJob(job);
+      } catch (_) {}
+      await sleep(500);
+    }
+  }
+
   scanEmbedded();
   render();
+  checkJob();
   // La Biblioteca es una SPA: al cambiar de búsqueda se vuelve a leer lo incrustado.
   let lastUrl = location.href;
   setInterval(() => {

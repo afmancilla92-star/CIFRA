@@ -231,7 +231,7 @@
     {
       id: "moda",
       label: "Moda y calzado",
-      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie"],
+      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie", "pantalones", "pantalon", "falda", "faldas", "conjunto", "conjuntos", "camisetas", "ropa deportiva", "shorts", "medias"],
       weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "nueva coleccion", "boutique"],
       categories: ["clothing", "fashion", "shoe", "apparel", "boutique", "ropa"]
     },
@@ -301,7 +301,7 @@
     {
       id: "alimentacion",
       label: "Alimentación y bebidas",
-      strong: ["restaurante", "delivery", "pizza", "hamburguesa", "sushi", "cafe", "cerveza", "vino", "vinos", "receta", "recetas", "comida", "alimentos", "snack", "chocolate", "panaderia", "pasteleria", "menu", "almuerzo", "cena", "bebida", "gourmet", "organico", "vegano"],
+      strong: ["restaurante", "delivery", "pizza", "hamburguesa", "sushi", "cafe", "cerveza", "vino", "vinos", "receta", "recetas", "comida", "alimentos", "snack", "chocolate", "panaderia", "pasteleria", "menu", "almuerzo", "cena", "bebida", "gourmet", "organico", "vegano", "mani", "crema de mani", "mantequilla de mani", "galletas", "granola", "cereal", "helado", "postre", "postres", "salsa", "arepas", "empanadas", "jugo", "jugos"],
       weak: ["sabor", "delicioso", "rico", "hambre", "food", "comer", "cocinar", "platos"],
       categories: ["restaurant", "food", "beverage", "bakery", "cafe", "grocery", "winery", "brewery"]
     },
@@ -560,6 +560,128 @@
   function truncate(text, max) {
     if (!text) return "";
     return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+  }
+
+  // src/ext/discovery.ts
+  var DEFAULT_QUERIES = [
+    "suplementos",
+    "skincare",
+    "ropa mujer",
+    "zapatillas",
+    "relojes",
+    "curso online",
+    "emprendedores",
+    "audífonos",
+    "decoración hogar",
+    "perros",
+    "envío gratis",
+    "pago contra entrega"
+  ];
+  var DISCOVERY_COUNTRIES = ["CO", "MX", "AR", "CL", "PE", "EC", "VE", "GT", "DO", "BO", "PY", "UY", "CR", "PA", "ES", "US", "BR"];
+  var MAX_PER_HOUR = 30;
+  var GAP_MS = 6e3;
+  var JOB_TIMEOUT_MS = 9e4;
+  function librarySearchUrl(q, country) {
+    const p = new URLSearchParams({
+      active_status: "active",
+      ad_type: "all",
+      country,
+      q,
+      search_type: "keyword_unordered",
+      media_type: "all"
+    });
+    return `https://www.facebook.com/ads/library/?${p.toString()}`;
+  }
+  async function recentSearches() {
+    const { searchLog = [] } = await chrome.storage.local.get("searchLog");
+    const hourAgo = Date.now() - 36e5;
+    return searchLog.filter((t) => t > hourAgo);
+  }
+  async function searchesLeft() {
+    return Math.max(0, MAX_PER_HOUR - (await recentSearches()).length);
+  }
+  async function noteSearch() {
+    const log = await recentSearches();
+    log.push(Date.now());
+    await chrome.storage.local.set({ searchLog: log });
+  }
+  function blockedMessage(reason) {
+    if (reason === "login") return "La Biblioteca pidió iniciar sesión. Abre facebook.com, inicia sesión tú mismo y vuelve a intentarlo.";
+    if (reason === "rate_limit")
+      return "Meta limitó temporalmente las búsquedas desde tu navegador. Se detuvo para proteger tu cuenta: vuelve a intentarlo en una hora.";
+    return reason ? `Búsqueda detenida: ${reason}` : "";
+  }
+  async function runSearchJob(q, country, scrolls = 2) {
+    await noteSearch();
+    const tab = await chrome.tabs.create({ url: librarySearchUrl(q, country), active: false });
+    const jobId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const key = `job:${tab.id}`;
+    await chrome.storage.session.set({ [key]: { id: jobId, q, country, scrolls } });
+    return new Promise((resolve) => {
+      let finished = false;
+      const finish = (r) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        chrome.runtime.onMessage.removeListener(onMsg);
+        chrome.tabs.onRemoved.removeListener(onRemoved);
+        chrome.storage.session.remove(key).catch(() => {
+        });
+        chrome.tabs.remove(tab.id).catch(() => {
+        });
+        resolve({ q, detected: 0, created: 0, updated: 0, blocked: null, error: null, ...r });
+      };
+      const onMsg = (msg) => {
+        if (msg && msg.type === "radar:jobDone" && msg.jobId === jobId) {
+          finish({
+            detected: Number(msg.detected) || 0,
+            created: Number(msg.created) || 0,
+            updated: Number(msg.updated) || 0,
+            blocked: msg.blocked || null,
+            error: msg.error || null
+          });
+        }
+      };
+      const onRemoved = (id) => {
+        if (id === tab.id) finish({ error: "La pestaña de búsqueda se cerró antes de terminar." });
+      };
+      const timer = setTimeout(() => finish({ error: "La Biblioteca tardó demasiado en responder." }), JOB_TIMEOUT_MS);
+      chrome.runtime.onMessage.addListener(onMsg);
+      chrome.tabs.onRemoved.addListener(onRemoved);
+    });
+  }
+  async function runDiscovery(queries, country, onProgress, isCancelled) {
+    const list = Array.from(new Set(queries.map((q) => q.trim()).filter(Boolean))).slice(0, MAX_PER_HOUR);
+    const p = { running: true, done: 0, total: list.length, current: null, created: 0, updated: 0, detected: 0, message: "" };
+    for (let i = 0; i < list.length; i++) {
+      if (isCancelled()) {
+        p.message = "Búsqueda detenida.";
+        break;
+      }
+      if (await searchesLeft() <= 0) {
+        p.message = `Llegaste al límite de ${MAX_PER_HOUR} búsquedas por hora. Continúa más tarde.`;
+        break;
+      }
+      p.current = list[i];
+      onProgress({ ...p });
+      const r = await runSearchJob(list[i], country, 2);
+      p.done++;
+      p.created += r.created;
+      p.updated += r.updated;
+      p.detected += r.detected;
+      if (r.blocked) {
+        p.message = blockedMessage(r.blocked);
+        break;
+      }
+      if (r.error && !r.detected) p.message = `«${r.q}»: ${r.error}`;
+      onProgress({ ...p });
+      if (i < list.length - 1 && !isCancelled()) await new Promise((res) => setTimeout(res, GAP_MS));
+    }
+    p.running = false;
+    p.current = null;
+    if (!p.message) p.message = `Listo: ${p.created} anuncios nuevos y ${p.updated} actualizados en ${p.done} búsquedas.`;
+    onProgress({ ...p });
+    return p;
   }
 
   // src/lib/landing.ts
@@ -859,6 +981,7 @@
       nicheTerms,
       euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
       sources,
+      queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
       isManual: e ? e.isManual && ctx.source === "manual" : ctx.source === "manual",
       partial,
       score: e?.score ?? 0,
@@ -960,7 +1083,11 @@
     }
     return null;
   }
-  var cleanTemplate = (s) => s && /^\{\{[^}]+\}\}$/.test(s) ? null : s;
+  function cleanTemplate(s) {
+    if (!s) return s;
+    const out = s.replace(/\{\{[^{}]{1,80}\}\}/g, "").replace(/[ \t]{2,}/g, " ").replace(/^\s+|\s+$/g, "");
+    return out ? out : null;
+  }
   function collectMedia(snapshot) {
     const out = [];
     const seen = /* @__PURE__ */ new Set();
@@ -1213,7 +1340,7 @@
       const touched = /* @__PURE__ */ new Set();
       for (const ad of batch.ads) {
         const existing = await this.get("ads", ad.id);
-        const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, now });
+        const { record, weak } = mergeAd(existing, ad, { source: opts.source, queryCountries: opts.queryCountries, query: opts.query, now });
         const advExisting = await this.get("advertisers", ad.pageId);
         const adv = mergeAdvertiser(advExisting, ad, record, weak, now);
         const tx2 = this.idb.transaction(["ads", "advertisers"], "readwrite");
@@ -1246,6 +1373,7 @@
       return this.ingest(ads, {
         source: "extension",
         queryCountries: countries,
+        query: p.query?.q ?? null,
         context: { q: p.query?.q ?? null, country: countries[0] ?? null }
       });
     }
@@ -1287,12 +1415,20 @@
       const tx = this.idb.transaction("ads", "readwrite");
       for (const a of ads) {
         const landing = normalizeLanding(a.linkUrl, a.caption);
-        const next = { ...a, landingKey: landing?.key ?? null, landingDomain: landing?.domain ?? null, linkUrl: landing?.url ?? null };
+        const next = {
+          ...a,
+          body: cleanTemplate(a.body),
+          title: cleanTemplate(a.title),
+          linkDescription: cleanTemplate(a.linkDescription),
+          landingKey: landing?.key ?? null,
+          landingDomain: landing?.domain ?? null,
+          linkUrl: landing?.url ?? null
+        };
         if (a.nicheSource !== "ai" && a.nicheSource !== "manual") {
           const r = classifyByRules({
-            body: a.body,
-            title: a.title,
-            linkDescription: a.linkDescription,
+            body: next.body,
+            title: next.title,
+            linkDescription: next.linkDescription,
             caption: landing?.domain ?? a.caption,
             pageName: a.pageName,
             categories: advs.get(a.pageId)?.categories
@@ -1388,7 +1524,13 @@
     advertisers: /* @__PURE__ */ new Map(),
     favorites: /* @__PURE__ */ new Map(),
     log: [],
-    tab: "ads",
+    tab: "discover",
+    country: "CO",
+    queries: DEFAULT_QUERIES.join("\n"),
+    searchLeft: MAX_PER_HOUR,
+    disc: null,
+    cancel: false,
+    live: { q: "", running: false, message: "" },
     limit: 60,
     f: {
       q: "",
@@ -1402,6 +1544,7 @@
       minScore: "",
       pageId: "",
       landing: "",
+      query: "",
       sort: "longest"
     },
     advQuery: "",
@@ -1452,6 +1595,7 @@
       if (minScore && a.score < minScore) return false;
       if (f.pageId && a.pageId !== f.pageId) return false;
       if (f.landing && a.landingKey !== f.landing) return false;
+      if (f.query && !(a.queries ?? []).includes(f.query)) return false;
       return terms.every((t) => a.search.includes(t));
     }).sort(SORTS[f.sort]?.fn ?? SORTS.longest.fn);
   }
@@ -1535,7 +1679,7 @@
           { class: "chips" },
           ad.niche ? chip(nicheLabel(ad.niche), "chip-accent") : null,
           chip(FORMAT_LABELS[ad.format] ?? ad.format),
-          (ad.collationCount ?? 1) > 1 ? chip(`${ad.collationCount} variantes`) : null,
+          (ad.collationCount ?? 1) > 1 ? chip(`${ad.collationCount} copias activas`, "chip-strong") : null,
           ad.platforms.map((p) => chip(PLATFORM_LABELS[p]?.short ?? p)),
           ad.countries.slice(0, 3).map((c) => chip(c)),
           ad.partial ? chip("Parcial", "chip-warn") : null
@@ -1549,7 +1693,7 @@
     );
   }
   function filterBy(patch) {
-    state.f = { ...state.f, pageId: "", landing: "", ...patch, status: patch.pageId || patch.landing ? "all" : state.f.status };
+    state.f = { ...state.f, pageId: "", landing: "", query: "", ...patch, status: patch.pageId || patch.landing || patch.query ? "all" : state.f.status };
     state.tab = "ads";
     state.limit = 60;
     closeDetail();
@@ -1568,15 +1712,17 @@
       { class: "card empty" },
       h("h2", null, "Tu radar está vacío"),
       h("p", { class: "muted" }, "Cifra Radar guarda anuncios reales de la Biblioteca de Anuncios de Meta. Nunca muestra anuncios inventados."),
+      h("p", null, "Ve a «Descubrir» y pulsa «Llenar mi radar»: Cifra Radar buscará por ti en la Biblioteca de Anuncios y categorizará lo que encuentre."),
       h(
-        "ol",
-        null,
-        h("li", null, "Abre la Biblioteca de Anuncios y busca una palabra clave (por ejemplo, «zapatillas») en el país que te interese."),
-        h("li", null, "Desplázate un poco para cargar resultados."),
-        h("li", null, "Pulsa el botón verde «Guardar en Cifra Radar» del panel que aparece abajo a la derecha."),
-        h("li", null, "Vuelve a esta pestaña: los anuncios aparecen aquí, listos para filtrar y ordenar por antigüedad.")
+        "div",
+        { class: "row wrap center-row" },
+        h("button", { class: "btn btn-primary", onclick: () => {
+          state.tab = "discover";
+          render();
+        } }, "Ir a Descubrir"),
+        h("a", { class: "btn", href: LIBRARY_HOME, target: "_blank", rel: "noopener" }, "Abrir la Biblioteca de Anuncios")
       ),
-      h("a", { class: "btn btn-primary", href: LIBRARY_HOME, target: "_blank", rel: "noopener" }, "Abrir la Biblioteca de Anuncios")
+      h("p", { class: "muted small" }, "También puedes buscar tú en la Biblioteca y pulsar «Guardar en Cifra Radar» en el panel de abajo a la derecha.")
     );
   }
   function adsView() {
@@ -1609,10 +1755,11 @@
       select("Formato", f.format, facet(base.map((a) => a.format)).map(([v, n]) => [v, `${FORMAT_LABELS[v] ?? v} (${n})`]), set("format")),
       select("Oferta", f.offer, facet(base.flatMap((a) => a.offers)).map(([v, n]) => [v, `${v} (${n})`]), set("offer"), "Cualquiera"),
       select("Días activos", f.minDays, [7, 14, 30, 60, 90, 180].map((d) => [String(d), `${d}+ días`]), set("minDays"), "Cualquiera"),
-      select("Puntuación", f.minScore, [40, 55, 70, 85].map((d) => [String(d), `${d}+`]), set("minScore"), "Cualquiera")
+      select("Puntuación", f.minScore, [40, 55, 70, 85].map((d) => [String(d), `${d}+`]), set("minScore"), "Cualquiera"),
+      select("Búsqueda", f.query, facet(base.flatMap((a) => a.queries ?? [])).map(([v, n]) => [v, `«${v}» (${n})`]), set("query"), "Todas")
     );
     const sort = select("Ordenar", f.sort, Object.entries(SORTS).map(([k, s]) => [k, s.label]), set("sort"), "—");
-    const active = f.pageId || f.landing;
+    const active = f.pageId || f.landing || f.query;
     return h(
       "div",
       null,
@@ -1623,9 +1770,10 @@
         { class: "muted" },
         f.pageId ? `Anunciante: ${state.advertisers.get(f.pageId)?.name ?? f.pageId}. ` : "",
         f.landing ? `Landing: ${f.landing}. ` : "",
+        f.query ? `Búsqueda: «${f.query}». ` : "",
         h("a", { href: "#", onclick: (e) => {
           e.preventDefault();
-          state.f = { ...state.f, pageId: "", landing: "" };
+          state.f = { ...state.f, pageId: "", landing: "", query: "" };
           render();
         } }, "Quitar")
       ) : null,
@@ -1837,6 +1985,186 @@
       h("p", { class: "muted small" }, SCORE_DISCLAIMER)
     );
   }
+  function countrySelect() {
+    const s = h(
+      "select",
+      { class: "inline-select", "aria-label": "País" },
+      DISCOVERY_COUNTRIES.map((c) => h("option", { value: c, selected: c === state.country }, countryName(c)))
+    );
+    s.value = state.country;
+    s.addEventListener("change", () => {
+      state.country = s.value;
+      chrome.storage.local.set({ discoveryCountry: s.value }).catch(() => {
+      });
+    });
+    return s;
+  }
+  async function startLiveSearch(q) {
+    q = q.trim();
+    if (!q || state.live.running || state.disc?.running) return;
+    if (await searchesLeft() <= 0) {
+      state.live.message = `Llegaste al límite de ${MAX_PER_HOUR} búsquedas por hora. Continúa más tarde.`;
+      render();
+      return;
+    }
+    state.live = { q, running: true, message: `Buscando «${q}» en la Biblioteca de ${countryName(state.country)}…` };
+    render();
+    const r = await runSearchJob(q, state.country, 3);
+    await load();
+    state.live = {
+      q,
+      running: false,
+      message: r.blocked ? blockedMessage(r.blocked) : r.detected ? `«${q}»: ${r.created} nuevos y ${r.updated} actualizados.` : `«${q}»: ${r.error ?? "no se encontraron anuncios"}.`
+    };
+    state.searchLeft = await searchesLeft();
+    if (r.detected && !r.blocked) filterBy({ query: q.toLowerCase() });
+    else render();
+  }
+  async function startDiscovery() {
+    if (state.disc?.running || state.live.running) return;
+    const queries = state.queries.split(/\n+/).map((x) => x.trim()).filter(Boolean);
+    chrome.storage.local.set({ discoveryQueries: queries }).catch(() => {
+    });
+    state.cancel = false;
+    await runDiscovery(
+      queries,
+      state.country,
+      async (p) => {
+        state.disc = p;
+        state.searchLeft = await searchesLeft();
+        await load();
+      },
+      () => state.cancel
+    );
+    try {
+      localStorage.setItem("cifra-last-discovery", (/* @__PURE__ */ new Date()).toISOString());
+    } catch {
+    }
+    await load();
+  }
+  function nicheCards() {
+    const base = state.ads.filter((a) => !a.isManual && a.isActive);
+    const groups = /* @__PURE__ */ new Map();
+    for (const a of base) groups.set(a.niche ?? "none", [...groups.get(a.niche ?? "none") ?? [], a]);
+    const list = Array.from(groups.entries()).sort((a, b) => a[0] === "none" ? 1 : b[0] === "none" ? -1 : b[1].length - a[1].length);
+    return h(
+      "div",
+      { class: "niche-grid" },
+      list.map(([niche, ads]) => {
+        const top = [...ads].sort(SORTS.score.fn);
+        const thumbs = top.filter((a) => a.media[0]).slice(0, 3);
+        return h(
+          "article",
+          { class: "card niche-card", onclick: () => filterBy({ niche }) },
+          h("div", { class: "niche-thumbs" }, thumbs.map((a) => mediaThumb(a.media, libraryUrl(a.id)))),
+          h(
+            "div",
+            { class: "niche-body" },
+            h("div", { class: "strong" }, nicheLabel(niche === "none" ? null : niche)),
+            h("small", { class: "muted" }, `${fmtNum(ads.length)} anuncios activos · ${fmtNum(new Set(ads.map((a) => a.pageId)).size)} anunciantes`)
+          )
+        );
+      })
+    );
+  }
+  function row(title, list, more) {
+    if (!list.length) return null;
+    return h(
+      "section",
+      { class: "stack" },
+      h("div", { class: "row between" }, h("h2", null, title), h("a", { href: "#", onclick: (e) => {
+        e.preventDefault();
+        more();
+      } }, "Ver todos →")),
+      h("div", { class: "grid" }, list.map(card))
+    );
+  }
+  function discoverView() {
+    const active = state.ads.filter((a) => !a.isManual && a.isActive);
+    const busy = Boolean(state.disc?.running || state.live.running);
+    const liveInput = h("input", { type: "search", class: "search", placeholder: "Palabra clave: producto, marca, oferta…", value: state.live.q });
+    liveInput.addEventListener("input", () => state.live.q = liveInput.value);
+    liveInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") void startLiveSearch(liveInput.value);
+    });
+    const queries = h("textarea", { class: "queries", rows: 6, "aria-label": "Búsquedas" }, state.queries);
+    queries.addEventListener("input", () => state.queries = queries.value);
+    const d = state.disc;
+    let last = null;
+    try {
+      last = localStorage.getItem("cifra-last-discovery");
+    } catch {
+    }
+    const pct = d && d.total ? Math.round(d.done / d.total * 100) : 0;
+    return h(
+      "div",
+      { class: "stack" },
+      h(
+        "section",
+        { class: "hero card pad" },
+        h("h1", null, "Anuncios que están escalando"),
+        h(
+          "p",
+          { class: "muted" },
+          active.length ? `${fmtNum(active.length)} anuncios activos de ${fmtNum(new Set(active.map((a) => a.pageId)).size)} anunciantes, categorizados por nicho.` : "Llena tu radar con un clic: Cifra Radar busca por ti en la Biblioteca de Anuncios de Meta y categoriza lo que encuentra."
+        ),
+        h(
+          "div",
+          { class: "toolbar" },
+          liveInput,
+          countrySelect(),
+          h("button", { class: "btn btn-primary", disabled: busy, onclick: () => void startLiveSearch(liveInput.value) }, state.live.running ? "Buscando…" : "Buscar en la Biblioteca")
+        ),
+        state.live.message ? h("p", { class: "muted" }, state.live.message) : null
+      ),
+      h(
+        "section",
+        { class: "card pad" },
+        h(
+          "div",
+          { class: "row between wrap" },
+          h(
+            "div",
+            null,
+            h("h2", null, "Llenar mi radar"),
+            h("small", { class: "muted" }, `Una búsqueda por línea en ${countryName(state.country)}. ${last ? `Última actualización: ${timeAgo(last)}.` : "Aún no lo has llenado."}`)
+          ),
+          d?.running ? h("button", { class: "btn danger", onclick: () => {
+            state.cancel = true;
+          } }, "Detener") : h("button", { class: "btn btn-primary", disabled: busy, onclick: () => void startDiscovery() }, active.length ? "Actualizar mi radar" : "Llenar mi radar ahora")
+        ),
+        d ? h(
+          "div",
+          { class: "progress" },
+          h("div", { class: "bar" }, h("i", { style: `width:${d.running ? Math.max(4, pct) : 100}%` })),
+          h(
+            "p",
+            { class: "muted" },
+            d.running ? `Buscando «${d.current ?? ""}» (${d.done + 1} de ${d.total}) · ${fmtNum(d.created)} anuncios nuevos hasta ahora` : d.message
+          )
+        ) : null,
+        h("details", null, h("summary", null, "Editar búsquedas"), queries),
+        h(
+          "p",
+          { class: "muted small" },
+          `Cada búsqueda abre la Biblioteca en una pestaña de fondo de tu Chrome, guarda lo que carga y la cierra. Máximo ${MAX_PER_HOUR} búsquedas por hora (te quedan ${state.searchLeft}). Si Meta limita el acceso o pide iniciar sesión, se detiene sola.`
+        )
+      ),
+      active.length ? h("section", { class: "stack" }, h("h2", null, "Categorías"), nicheCards()) : null,
+      row("Escalando ahora", [...active].sort(SORTS.score.fn).slice(0, 8), () => {
+        state.f = { ...state.f, sort: "score" };
+        filterBy({});
+      }),
+      row("Más copias activas", [...active].filter((a) => (a.collationCount ?? 1) > 1).sort(SORTS.variants.fn).slice(0, 8), () => {
+        state.f = { ...state.f, sort: "variants" };
+        filterBy({});
+      }),
+      row("Más tiempo activos", [...active].sort(SORTS.longest.fn).slice(0, 8), () => {
+        state.f = { ...state.f, sort: "longest" };
+        filterBy({});
+      })
+    );
+  }
   function closeDetail() {
     document.querySelector(".modal")?.remove();
     document.body.classList.remove("no-scroll");
@@ -1933,7 +2261,8 @@
                 fact("Países", ad.countries.map(countryName).join(", ") || "—"),
                 fact("Idioma", ad.language ? LANGUAGE_NAMES[ad.language] ?? ad.language.toUpperCase() : "—"),
                 fact("Formato", FORMAT_LABELS[ad.format] ?? ad.format),
-                fact("Variantes", ad.collationCount ? `${ad.collationCount} versiones` : "—"),
+                fact("Copias activas", ad.collationCount ? `${ad.collationCount} anuncios con esta creatividad` : "—"),
+                ad.queries?.length ? fact("Encontrado en búsquedas", ad.queries.join(", ")) : null,
                 fact("Nicho", `${nicheLabel(ad.niche)}${ad.nicheConfidence ? ` · ${Math.round(ad.nicheConfidence * 100)}%` : ""}`),
                 ad.nicheTerms.length ? fact("Señales del nicho", ad.nicheTerms.slice(0, 5).join(", ")) : null,
                 fact("Primera vez visto", fmtDate(ad.firstSeenAt)),
@@ -1948,6 +2277,7 @@
     document.body.classList.add("no-scroll");
   }
   var TABS = [
+    ["discover", "Descubrir"],
     ["ads", "Anuncios"],
     ["advertisers", "Anunciantes"],
     ["landings", "Landing pages"],
@@ -1957,7 +2287,7 @@
   function render() {
     const root = document.getElementById("app");
     const total = state.ads.filter((a) => !a.isManual);
-    const view = state.tab === "ads" ? adsView() : state.tab === "advertisers" ? advertisersView() : state.tab === "landings" ? landingsView() : state.tab === "favorites" ? favoritesView() : dataView();
+    const view = state.tab === "discover" ? discoverView() : state.tab === "ads" ? adsView() : state.tab === "advertisers" ? advertisersView() : state.tab === "landings" ? landingsView() : state.tab === "favorites" ? favoritesView() : dataView();
     root.replaceChildren(
       h(
         "header",
@@ -1989,12 +2319,19 @@
   });
   (async () => {
     state.store = await LocalStore.open();
-    const DATA_VERSION = "2";
+    const DATA_VERSION = "3";
     try {
       if (localStorage.getItem("cifra-data-version") !== DATA_VERSION) {
         await state.store.reindex();
         localStorage.setItem("cifra-data-version", DATA_VERSION);
       }
+    } catch {
+    }
+    try {
+      const saved = await chrome.storage.local.get(["discoveryCountry", "discoveryQueries"]);
+      if (saved.discoveryCountry) state.country = saved.discoveryCountry;
+      if (Array.isArray(saved.discoveryQueries) && saved.discoveryQueries.length) state.queries = saved.discoveryQueries.join("\n");
+      state.searchLeft = await searchesLeft();
     } catch {
     }
     await state.store.purge();

@@ -14,9 +14,35 @@
   const TAG = "__cifraRadar";
   const MAX = 6_000_000;
 
+  // Las respuestas pueden llegar antes de que el script de la extensión esté
+  // listo: se guardan (con un tope) y se entregan cuando avisa «ready».
+  let ready = false;
+  let queue = [];
+  let queued = 0;
+  function post(msg) {
+    if (ready) return window.postMessage(msg, window.location.origin);
+    const size = msg.text ? msg.text.length : 0;
+    if (queued + size > 30_000_000) return;
+    queued += size;
+    queue.push(msg);
+  }
+  window.addEventListener("message", (e) => {
+    if (e.source !== window || !e.data || e.data[TAG] !== 1 || e.data.kind !== "ready" || ready) return;
+    ready = true;
+    const pending = queue;
+    queue = [];
+    queued = 0;
+    for (const m of pending) window.postMessage(m, window.location.origin);
+  });
+
   function relay(text) {
-    if (typeof text !== "string" || text.length > MAX || text.indexOf("ad_archive_id") === -1) return;
-    window.postMessage({ [TAG]: 1, kind: "response", text }, window.location.origin);
+    if (typeof text !== "string" || text.length > MAX) return;
+    // Meta limitó las consultas: se avisa para detener cualquier búsqueda en curso.
+    if (text.indexOf("1675004") !== -1 || text.indexOf("Rate limit exceeded") !== -1) {
+      post({ [TAG]: 1, kind: "blocked", reason: "rate_limit" });
+    }
+    if (text.indexOf("ad_archive_id") === -1) return;
+    post({ [TAG]: 1, kind: "response", text });
   }
 
   const isGraphql = (url) => typeof url === "string" && url.indexOf("/api/graphql") !== -1;

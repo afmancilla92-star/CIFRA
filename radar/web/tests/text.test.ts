@@ -41,6 +41,13 @@ describe("nichos por reglas", () => {
     expect(classifyByRules({ body: "Conoce nuestras propuestas", categories: ["Real Estate"] }).niche).toBe("inmobiliaria");
   });
 
+  it("ropa por catálogo no se confunde con apps", () => {
+    expect(
+      classifyByRules({ body: "¡Descarga la App de Temu hoy!", title: "Conjunto de dos piezas para mujer, pantalones deportivos y camiseta" }).niche,
+    ).toBe("moda");
+    expect(classifyByRules({ body: "Descubre la nueva crema de maní con proteína", title: "Nuevo snack" }).niche).toBe("alimentacion");
+  });
+
   it("reconoce calzado en inglés y español", () => {
     expect(classifyByRules({ body: "Comfortable slippers for every day. Pantuflas suaves" }).niche).toBe("moda");
   });

@@ -57,6 +57,14 @@ describe("Biblioteca de Anuncios (extensión)", () => {
     expect(r.title).toBeNull();
   });
 
+  it("quita variables de catálogo dentro del texto", () => {
+    const r = mapLibraryNode(
+      { ...node, snapshot: { ...node.snapshot, body: { text: "{{product.custom_label_0}} ¡Solo nuevos usuarios! Descarga la app" } } },
+      { countries: [] },
+    )!;
+    expect(r.body).toBe("¡Solo nuevos usuarios! Descarga la app");
+  });
+
   it("descarta nodos sin anunciante", () => {
     expect(mapLibraryNode({ ad_archive_id: "1" }, { countries: [] })).toBeNull();
   });
