@@ -27,6 +27,7 @@
   let lastMessage = "";
   let blocked = null; // "rate_limit" | "login" cuando Meta limita o pide iniciar sesión
   let jobRanks = null; // posición de cada anuncio en una búsqueda del radar ordenada por impresiones
+  let resultCount = 0; // total de resultados que informa la Biblioteca («~225 resultados»)
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function addNodes(nodes) {
@@ -50,7 +51,9 @@
       const t = s.textContent || "";
       if (t.indexOf("ad_archive_id") === -1) continue;
       try {
-        addNodes(C.findAdNodes(JSON.parse(t)));
+        const json = JSON.parse(t);
+        addNodes(C.findAdNodes(json));
+        resultCount = Math.max(resultCount, C.findResultCount(json));
       } catch (_) {}
     }
   }
@@ -66,7 +69,9 @@
     }
     if (e.data.kind !== "response") return;
     try {
-      addNodes(C.extractFromText(e.data.text));
+      const parsed = C.parseAll(e.data.text);
+      resultCount = Math.max(resultCount, parsed.count);
+      addNodes(parsed.nodes);
     } catch (_) {}
   });
   // Avisa al observador de la página que ya puede entregar lo que guardó.
@@ -167,6 +172,7 @@
           nodes: chunk.map(([, n]) => n),
           domCards: b === 0 ? domCards : [],
           ranks: jobRanks || undefined,
+          resultCount: resultCount || undefined,
         };
         const res = await chrome.runtime.sendMessage({ type: "radar:send", payload });
         if (!res || !res.ok) {
@@ -316,7 +322,8 @@
       await sleep(3500);
     }
     let res = { ok: true, created: 0, updated: 0 };
-    jobRanks = computeRanks();
+    // El ranking solo tiene sentido en búsquedas por palabra clave.
+    jobRanks = job.q ? computeRanks() : null;
     if (buffer.size) res = await send({ all: true });
     // La página hace varias consultas; si alguna fue limitada pero los anuncios
     // llegaron, no es un bloqueo: se avisa como «limitado» para ir más despacio.
@@ -329,6 +336,7 @@
       updated: res.updated || 0,
       blocked: limited ? null : blocked,
       limited,
+      resultCount,
       error: res.ok ? null : res.error,
     }).catch(() => {});
   }
@@ -351,6 +359,7 @@
   setInterval(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
+      resultCount = 0;
       scanEmbedded();
       render();
     }

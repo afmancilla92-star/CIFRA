@@ -494,155 +494,430 @@ var CifraCore = (() => {
     {
       id: "salud",
       label: "Salud y bienestar",
-      strong: ["suplemento", "suplementos", "colageno", "vitamina", "vitaminas", "probiotico", "dolor articular", "articulaciones", "menopausia", "diabetes", "presion arterial", "colesterol", "insomnio", "ansiedad", "digestion", "intestino", "detox", "adelgazar", "bajar de peso", "perder peso", "emagrecer", "weight loss", "supplement", "gut health", "nutricionista", "clinica", "odontologia", "dentista"],
-      weak: ["salud", "saude", "health", "bienestar", "bem estar", "wellness", "natural", "energia", "inflamacion", "medico", "doctor", "terapia", "fisioterapia", "sueno", "dormir"],
-      categories: ["health", "medical", "doctor", "hospital", "dentist", "nutrition", "pharmacy", "salud"]
+      description: "salud general, dolor, sueño, digestión, tratamientos naturales",
+      seed: "salud natural",
+      strong: ["dolor articular", "articulaciones", "menopausia", "diabetes", "presion arterial", "colesterol", "insomnio", "digestion", "intestino", "inflamacion", "detox", "migrana", "varices", "hongos", "artritis", "ciatica", "prostata", "higado", "tiroides", "clinica", "odontologia", "dentista", "medico", "fisioterapia", "salud natural", "gut health"],
+      weak: ["salud", "saude", "health", "bienestar", "bem estar", "wellness", "natural", "energia", "doctor", "terapia", "sueno", "dormir", "dolor", "cuerpo"],
+      categories: ["health", "medical", "doctor", "hospital", "dentist", "pharmacy", "salud", "wellness"]
     },
     {
-      id: "belleza",
-      label: "Belleza y cuidado personal",
-      strong: ["serum", "skincare", "skin care", "crema facial", "antiarrugas", "arrugas", "manchas", "acne", "maquillaje", "maquiagem", "makeup", "cabello", "caida del cabello", "shampoo", "champu", "pestanas", "unas", "perfume", "fragancia", "depilacion", "protector solar", "rutina facial", "cosmetico", "cosmeticos", "labial"],
-      weak: ["belleza", "beleza", "beauty", "piel", "pele", "skin", "rostro", "glow", "hidratacion", "cuidado personal", "spa", "estetica", "salon"],
-      categories: ["beauty", "cosmetic", "skin care", "hair salon", "barber", "spa", "perfume"]
-    },
-    {
-      id: "moda",
-      label: "Moda y calzado",
-      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie", "pantalones", "pantalon", "falda", "faldas", "conjunto", "conjuntos", "camisetas", "ropa deportiva", "shorts", "medias"],
-      weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "nueva coleccion", "boutique"],
-      categories: ["clothing", "fashion", "shoe", "apparel", "boutique", "ropa"]
-    },
-    {
-      id: "joyeria",
-      label: "Joyería, relojes y accesorios",
-      strong: ["joyeria", "joias", "jewelry", "anillo", "anillos", "collar", "collares", "aretes", "pendientes", "pulsera", "pulseras", "reloj", "relojes", "watch", "plata 925", "oro 18k", "acero quirurgico", "lentes de sol", "gafas"],
-      weak: ["accesorios", "acessorios", "accessories", "dije", "joya"],
-      categories: ["jewelry", "watch", "accessories", "eyewear"]
-    },
-    {
-      id: "fitness",
-      label: "Fitness y deporte",
-      strong: ["gimnasio", "gym", "entrenamiento", "treino", "workout", "rutina de ejercicios", "musculo", "masa muscular", "proteina", "whey", "creatina", "pilates", "yoga", "crossfit", "running", "abdominales", "gluteos", "entrenador personal", "personal trainer"],
-      weak: ["fitness", "deporte", "esporte", "sport", "ejercicio", "exercicio", "cardio", "atleta", "bicicleta", "futbol"],
-      categories: ["gym", "fitness", "sports", "athlete", "yoga"]
+      id: "salud_mental",
+      label: "Salud mental",
+      description: "ansiedad, estrés, terapia, emociones, autoestima",
+      seed: "ansiedad",
+      strong: ["ansiedad", "estres", "depresion", "ataques de panico", "salud mental", "psicologo", "psicologa", "psicologia", "terapia online", "burnout", "trauma", "tdah", "autoestima", "mental health", "anxiety", "therapy", "overthinking"],
+      weak: ["emociones", "emocional", "calma", "paz mental", "mente", "sanar", "bienestar emocional"],
+      categories: ["psychologist", "mental health", "therapist", "counselor"]
     },
     {
       id: "educacion",
-      label: "Educación y cursos",
-      strong: ["curso", "cursos", "masterclass", "clase gratis", "aula gratuita", "certificado", "certificacion", "diplomado", "maestria", "universidad", "ingles", "aprende", "aprender", "aprenda", "capacitacion", "formacion", "bootcamp", "webinar", "mentoria", "taller", "workshop", "inscripciones", "matriculas", "beca"],
-      weak: ["educacion", "educacao", "education", "estudiar", "estudar", "alumnos", "escuela", "academia", "online course", "clases", "profesor"],
+      label: "Educación académica",
+      description: "colegios, universidades, tareas, exámenes, refuerzo escolar",
+      seed: "universidad",
+      strong: ["universidad", "colegio", "maestria", "doctorado", "pregrado", "bachillerato", "icfes", "examen de admision", "matriculas", "inscripciones", "beca", "becas", "tareas", "refuerzo escolar", "matematicas", "lectura", "ninos aprendan", "homeschool", "student", "college"],
+      weak: ["educacion", "educacao", "education", "estudiar", "estudar", "alumnos", "escuela", "academia", "profesor", "aprendizaje", "estudiantes"],
       categories: ["education", "school", "college", "university", "tutor", "educational"]
     },
     {
-      id: "negocios",
-      label: "Negocios y marketing digital",
-      strong: ["emprendedor", "emprendedores", "emprender", "ecommerce", "e commerce", "tienda online", "dropshipping", "marketing digital", "trafico pago", "facebook ads", "meta ads", "embudo", "ventas online", "vender por internet", "agencia de marketing", "infoproducto", "afiliados", "lanzamiento", "clientes potenciales", "leads", "escalar tu negocio", "negocio digital"],
-      weak: ["negocio", "negocios", "business", "empresa", "marketing", "ventas", "vendas", "facturar", "ingresos", "estrategia", "marca personal", "freelance"],
-      categories: ["marketing", "advertising", "consulting", "business"]
+      id: "cursos",
+      label: "Cursos y formación online",
+      description: "cursos, masterclass, certificaciones y formación a distancia",
+      seed: "curso online",
+      strong: ["curso online", "curso", "cursos", "masterclass", "clase gratis", "aula gratuita", "certificado", "certificacion", "diplomado", "capacitacion", "formacion", "bootcamp", "webinar", "taller online", "workshop", "aprende", "aprender", "aprenda", "inscribete", "modulos", "online course", "lecciones"],
+      weak: ["clases", "online", "desde casa", "a tu ritmo", "acceso de por vida", "comunidad"],
+      categories: ["education website", "online course", "course"]
+    },
+    {
+      id: "fitness",
+      label: "Fitness y entrenamiento",
+      description: "gimnasio, rutinas, ejercicio en casa, deporte",
+      seed: "rutina de ejercicios",
+      strong: ["gimnasio", "gym", "entrenamiento", "treino", "workout", "rutina de ejercicios", "ejercicios en casa", "musculo", "masa muscular", "pilates", "yoga", "crossfit", "running", "abdominales", "gluteos", "calistenia", "personal trainer", "entrenador personal", "quemar grasa", "fat burning"],
+      weak: ["fitness", "deporte", "esporte", "sport", "ejercicio", "exercicio", "cardio", "atleta", "tonificar", "fuerza"],
+      categories: ["gym", "fitness", "sports", "athlete", "yoga", "personal trainer"]
+    },
+    {
+      id: "nutricion",
+      label: "Nutrición y dietas",
+      description: "dietas, alimentación, planes de comida",
+      seed: "dieta",
+      strong: ["dieta", "dietas", "bajar de peso", "perder peso", "adelgazar", "emagrecer", "weight loss", "plan de alimentacion", "plan de comidas", "nutricionista", "keto", "ayuno intermitente", "antiinflamatoria", "deficit calorico", "recetas saludables", "meal plan", "comer sano", "alimentacion saludable"],
+      weak: ["nutricion", "nutricao", "nutrition", "alimentacion", "calorias", "saludable", "saludables", "kilos", "peso"],
+      categories: ["nutritionist", "dietitian", "nutrition"]
+    },
+    {
+      id: "desarrollo_personal",
+      label: "Desarrollo personal",
+      description: "hábitos, mentalidad, motivación, superación",
+      seed: "desarrollo personal",
+      strong: ["desarrollo personal", "crecimiento personal", "mentalidad", "mindset", "habitos", "disciplina", "motivacion", "proposito de vida", "superacion", "inteligencia emocional", "confianza en ti", "mejor version", "self improvement", "personal growth"],
+      weak: ["transformacion", "exito", "metas", "felicidad", "cambiar tu vida", "potencial"],
+      categories: ["personal coach", "motivational speaker", "public figure"]
+    },
+    {
+      id: "crianza",
+      label: "Crianza y familia",
+      description: "bebés, embarazo, maternidad, niños, vida en familia",
+      seed: "crianza",
+      strong: ["crianza", "bebe", "bebes", "embarazo", "embarazada", "lactancia", "maternidad", "paternidad", "panales", "fraldas", "recien nacido", "baby", "mama primeriza", "berrinches", "rabietas", "ninos", "criancas", "kids", "parenting", "cuentos para ninos", "juguetes", "infantil"],
+      weak: ["hijos", "hijo", "hija", "mamas", "maes", "familia", "padres", "toddler"],
+      categories: ["baby", "kids", "children", "toy", "maternity", "parenting"]
+    },
+    {
+      id: "suplementos",
+      label: "Suplementos",
+      description: "vitaminas, proteínas, colágeno y suplementación",
+      seed: "suplementos",
+      strong: ["suplemento", "suplementos", "suplementacion", "colageno", "vitamina", "vitaminas", "probiotico", "proteina", "whey", "creatina", "magnesio", "omega 3", "capsulas", "gomitas", "pre entreno", "aminoacidos", "supplement", "supplements"],
+      weak: ["multivitaminico", "dosis", "formula", "ingredientes naturales"],
+      categories: ["nutrition supplement", "supplement", "vitamins"]
+    },
+    {
+      id: "espiritualidad",
+      label: "Espiritualidad",
+      description: "meditación, energía, tarot, astrología, manifestación",
+      seed: "meditacion",
+      strong: ["espiritualidad", "espiritual", "meditacion", "meditar", "tarot", "astrologia", "horoscopo", "carta astral", "manifestar", "manifestacion", "ley de atraccion", "chakras", "energia espiritual", "sanacion", "reiki", "constelaciones", "angeles", "abundancia", "spiritual"],
+      weak: ["universo", "vibracion", "energia", "alma", "intuicion", "despertar"],
+      categories: ["spiritual", "astrologist", "psychic", "religious center"]
+    },
+    {
+      id: "productividad",
+      label: "Productividad",
+      description: "organización, gestión del tiempo, agendas, planificación",
+      seed: "productividad",
+      strong: ["productividad", "productivo", "gestion del tiempo", "organizacion personal", "planner", "planificador", "agenda", "notion", "to do", "procrastinacion", "enfoque", "rutina diaria", "time management", "productivity"],
+      weak: ["organizar", "organizate", "tiempo", "tareas", "planifica", "concentracion"],
+      categories: ["productivity"]
+    },
+    {
+      id: "religion",
+      label: "Religión",
+      description: "fe, Biblia, oración, iglesia, cristianismo",
+      seed: "biblia",
+      strong: ["biblia", "oracion", "orar", "jesus", "cristo", "dios", "iglesia", "fe cristiana", "devocional", "evangelio", "versiculo", "catolico", "cristiano", "cristiana", "salmo", "pastor", "bible", "prayer", "god"],
+      weak: ["fe", "bendicion", "bendiciones", "senor", "gloria", "espiritu santo"],
+      categories: ["religious", "church", "religious organization", "christian"]
+    },
+    {
+      id: "belleza",
+      label: "Belleza y estética",
+      description: "skincare, maquillaje, cabello, tratamientos estéticos",
+      seed: "skincare",
+      strong: ["serum", "skincare", "skin care", "crema facial", "antiarrugas", "arrugas", "manchas", "acne", "maquillaje", "maquiagem", "makeup", "cabello", "caida del cabello", "shampoo", "champu", "pestanas", "unas", "perfume", "fragancia", "depilacion", "protector solar", "rutina facial", "cosmetico", "cosmeticos", "labial", "botox", "estetica", "tratamiento facial"],
+      weak: ["belleza", "beleza", "beauty", "piel", "pele", "skin", "rostro", "glow", "hidratacion", "cuidado personal", "spa", "salon"],
+      categories: ["beauty", "cosmetic", "skin care", "hair salon", "barber", "spa", "perfume"]
+    },
+    {
+      id: "marketing",
+      label: "Marketing digital",
+      description: "publicidad online, redes sociales, embudos y tráfico",
+      seed: "marketing digital",
+      strong: ["marketing digital", "facebook ads", "meta ads", "google ads", "tiktok ads", "trafico pago", "embudo", "funnel", "copywriting", "agencia de marketing", "redes sociales para negocios", "community manager", "seo", "publicidad online", "anuncios que venden", "marketing"],
+      weak: ["clientes potenciales", "estrategia", "campanas", "alcance", "engagement", "marca personal"],
+      categories: ["marketing agency", "advertising", "digital creator", "advertising/marketing"]
+    },
+    {
+      id: "relaciones",
+      label: "Relaciones y citas",
+      description: "pareja, conquista, reconquista, citas, sexualidad",
+      seed: "pareja",
+      strong: ["pareja", "relaciones de pareja", "reconquistar", "recuperar a tu ex", "ex pareja", "citas", "conquistar", "seduccion", "enamorar", "matrimonio", "infidelidad", "sexualidad", "dating", "relationship", "soltera", "soltero"],
+      weak: ["amor", "novio", "novia", "esposo", "esposa", "corazon"],
+      categories: ["dating service", "relationship coach"]
+    },
+    {
+      id: "ia",
+      label: "Inteligencia artificial",
+      description: "herramientas de IA, ChatGPT y automatización",
+      seed: "inteligencia artificial",
+      strong: ["inteligencia artificial", "chatgpt", "chat gpt", "ia generativa", "prompts", "automatizacion con ia", "agentes de ia", "artificial intelligence", "ai tools", "midjourney", "claude", "gemini", "con ia", "usando ia"],
+      weak: ["automatiza", "automatizacion", "algoritmo", "robot", "ai"],
+      categories: ["artificial intelligence"]
     },
     {
       id: "finanzas",
-      label: "Finanzas e inversiones",
-      strong: ["invertir", "inversion", "investir", "investimento", "trading", "forex", "criptomonedas", "cripto", "bitcoin", "acciones", "bolsa de valores", "prestamo", "prestamos", "credito", "tarjeta de credito", "seguro de vida", "seguros", "hipoteca", "ahorro", "billetera", "fintech", "cuenta digital", "rendimiento"],
-      weak: ["finanzas", "financas", "finance", "dinero", "dinheiro", "money", "banco", "pagos", "libertad financiera", "renta pasiva"],
-      categories: ["finance", "bank", "insurance", "financial", "investing", "cryptocurrency"]
+      label: "Finanzas personales",
+      description: "ahorro, deudas, crédito, presupuesto y préstamos",
+      seed: "salir de deudas",
+      strong: ["finanzas personales", "ahorro", "ahorrar", "deudas", "salir de deudas", "presupuesto", "prestamo", "prestamos", "credito", "tarjeta de credito", "libre inversion", "educacion financiera", "libertad financiera", "cuenta digital", "billetera", "fintech", "personal finance"],
+      weak: ["finanzas", "financas", "finance", "dinero", "dinheiro", "money", "banco", "pagos", "cuotas"],
+      categories: ["finance", "bank", "financial", "credit union", "financial service"]
     },
     {
-      id: "inmobiliaria",
-      label: "Inmobiliaria",
-      strong: ["departamento", "departamentos", "apartamento", "apartamentos", "casa en venta", "venta de casas", "alquiler", "arriendo", "inmobiliaria", "imobiliaria", "real estate", "lotes", "terrenos", "preventa", "condominio", "bienes raices", "propiedad", "propiedades", "ambientes"],
-      weak: ["casa propia", "hogar propio", "credito hipotecario", "metros cuadrados", "m2", "entrega inmediata"],
-      categories: ["real estate", "property", "apartment", "inmobiliaria"]
+      id: "gastronomia",
+      label: "Gastronomía y recetas",
+      description: "recetas, cocina, restaurantes y comida a domicilio",
+      seed: "recetas",
+      strong: ["receta", "recetas", "cocina", "cocinar", "restaurante", "delivery", "domicilio", "pizza", "hamburguesa", "sushi", "menu", "almuerzo", "cena", "postres", "reposteria", "panaderia", "pasteleria", "chef", "gourmet", "platos"],
+      weak: ["sabor", "delicioso", "rico", "hambre", "food", "comer", "comida"],
+      categories: ["restaurant", "food", "bakery", "cafe", "chef", "cooking"]
     },
     {
-      id: "tecnologia",
-      label: "Tecnología y gadgets",
-      strong: ["smartphone", "celular", "iphone", "android", "auriculares", "audifonos", "fone de ouvido", "smartwatch", "laptop", "notebook", "computadora", "tablet", "gadget", "cargador", "bluetooth", "parlante", "camara de seguridad", "drone", "consola", "software", "saas", "inteligencia artificial", "ia ", "chatgpt", "app para"],
-      weak: ["tecnologia", "technology", "tech", "digital", "wifi", "inteligente", "electronica", "pantalla", "bateria"],
-      categories: ["electronics", "software", "computer", "technology", "internet company", "app page"]
+      id: "emprendimiento",
+      label: "Emprendimiento y negocios",
+      description: "emprender, negocio propio, pymes y franquicias",
+      seed: "emprendimiento",
+      strong: ["emprendedor", "emprendedores", "emprender", "emprendimiento", "negocio propio", "negocio digital", "escalar tu negocio", "pymes", "franquicia", "infoproducto", "ingresos extra", "trabajar desde casa", "ganar dinero", "business", "facturar", "modelo de negocio"],
+      weak: ["negocio", "negocios", "empresa", "ingresos", "socio", "inversion inicial"],
+      categories: ["business", "consulting", "entrepreneur", "small business"]
+    },
+    {
+      id: "software",
+      label: "Software y SaaS",
+      description: "apps, plataformas, programas y suscripciones de software",
+      seed: "software",
+      strong: ["software", "saas", "app", "aplicacion", "aplicativo", "descarga la app", "descargar", "baixe", "download", "app store", "google play", "prueba gratis", "free trial", "crm", "erp", "programa contable", "sistema de facturacion"],
+      weak: ["plataforma", "usuarios", "dashboard", "integraciones", "nube", "cloud"],
+      categories: ["software", "app page", "internet company", "computer company"]
+    },
+    {
+      id: "idiomas",
+      label: "Idiomas",
+      description: "inglés, portugués y aprendizaje de idiomas",
+      seed: "aprender ingles",
+      strong: ["ingles", "aprender ingles", "hablar ingles", "frances", "aleman", "portugues", "italiano", "idiomas", "idioma", "english", "language", "fluidez", "nativo", "toefl", "ielts"],
+      weak: ["pronunciacion", "vocabulario", "gramatica", "conversacion"],
+      categories: ["language school", "languages"]
     },
     {
       id: "hogar",
       label: "Hogar y decoración",
-      strong: ["decoracion", "decoracao", "home decor", "muebles", "moveis", "furniture", "colchon", "colchones", "sabanas", "cocina", "utensilios", "organizador", "iluminacion", "lampara", "alfombra", "cortinas", "jardin", "limpieza", "aspiradora", "electrodomesticos", "freidora", "sofa"],
+      description: "muebles, decoración, cocina, limpieza y organización",
+      seed: "decoracion hogar",
+      strong: ["decoracion", "decoracao", "home decor", "muebles", "moveis", "furniture", "colchon", "colchones", "sabanas", "utensilios", "organizador", "iluminacion", "lampara", "alfombra", "cortinas", "jardin", "limpieza", "aspiradora", "electrodomesticos", "freidora", "sofa", "cocina integral"],
       weak: ["hogar", "casa", "home", "living", "dormitorio", "bano", "ambiente"],
       categories: ["home decor", "furniture", "home improvement", "kitchen", "household", "garden"]
     },
     {
-      id: "mascotas",
-      label: "Mascotas",
-      strong: ["perro", "perros", "gato", "gatos", "cachorro", "mascota", "mascotas", "pet shop", "veterinaria", "veterinario", "alimento para perros", "racao", "dog", "cat", "pets", "arnes", "collar para perro", "arena para gatos"],
-      weak: ["peludo", "peludos", "animal", "animales", "adiestramiento"],
-      categories: ["pet", "veterinarian", "animal"]
+      id: "empleo",
+      label: "Empleo y carrera profesional",
+      description: "trabajo, currículum, entrevistas y vacantes",
+      seed: "empleo",
+      strong: ["empleo", "vacante", "vacantes", "oferta de trabajo", "ofertas de trabajo", "hoja de vida", "curriculum", "cv", "entrevista de trabajo", "linkedin", "carrera profesional", "postulate", "contratando", "estamos contratando", "trabaja con nosotros", "job", "hiring"],
+      weak: ["trabajo", "salario", "sueldo", "oportunidad laboral", "profesional"],
+      categories: ["employment agency", "recruiter", "jobs"]
     },
     {
-      id: "alimentacion",
-      label: "Alimentación y bebidas",
-      strong: ["restaurante", "delivery", "pizza", "hamburguesa", "sushi", "cafe", "cerveza", "vino", "vinos", "receta", "recetas", "comida", "alimentos", "snack", "chocolate", "panaderia", "pasteleria", "menu", "almuerzo", "cena", "bebida", "gourmet", "organico", "vegano", "mani", "crema de mani", "mantequilla de mani", "galletas", "granola", "cereal", "helado", "postre", "postres", "salsa", "arepas", "empanadas", "jugo", "jugos"],
-      weak: ["sabor", "delicioso", "rico", "hambre", "food", "comer", "cocinar", "platos"],
-      categories: ["restaurant", "food", "beverage", "bakery", "cafe", "grocery", "winery", "brewery"]
+      id: "mascotas",
+      label: "Mascotas",
+      description: "perros, gatos, alimento, accesorios y veterinaria",
+      seed: "perros",
+      strong: ["perro", "perros", "gato", "gatos", "cachorro", "mascota", "mascotas", "pet shop", "veterinaria", "veterinario", "alimento para perros", "racao", "dog", "cat", "pets", "arnes", "collar para perro", "arena para gatos", "adiestramiento"],
+      weak: ["peludo", "peludos", "animal", "animales"],
+      categories: ["pet", "veterinarian", "animal", "pet store"]
+    },
+    {
+      id: "musica",
+      label: "Música y audio",
+      description: "instrumentos, canto, producción musical y audio",
+      seed: "aprender guitarra",
+      strong: ["guitarra", "piano", "canto", "cantar", "bateria musical", "produccion musical", "beats", "instrumento", "musico", "spotify", "podcast", "audiolibro", "audiolibros", "music", "dj"],
+      weak: ["musica", "cancion", "canciones", "audio", "sonido"],
+      categories: ["musician", "band", "music", "record label", "podcast"]
+    },
+    {
+      id: "coaching",
+      label: "Coaching y consultoría",
+      description: "mentorías, asesorías y acompañamiento 1 a 1",
+      seed: "mentoria",
+      strong: ["coaching", "coach", "mentoria", "mentor", "asesoria", "consultoria", "consultor", "acompanamiento", "sesion 1 a 1", "agenda una llamada", "llamada gratuita", "programa de acompanamiento", "consulting"],
+      weak: ["guia", "estrategia personalizada", "resultados", "metodo"],
+      categories: ["coach", "life coach", "consulting agency", "business consultant"]
+    },
+    {
+      id: "contenido",
+      label: "Creación de contenido",
+      description: "influencers, YouTube, TikTok, edición y UGC",
+      seed: "creador de contenido",
+      strong: ["creador de contenido", "creadores de contenido", "influencer", "youtube", "tiktok", "reels", "ugc", "editar videos", "edicion de video", "monetizar", "seguidores", "viralizar", "contenido viral", "content creator"],
+      weak: ["contenido", "videos", "redes", "instagram", "audiencia"],
+      categories: ["digital creator", "video creator", "blogger", "creator"]
+    },
+    {
+      id: "diseno",
+      label: "Diseño y creatividad",
+      description: "diseño gráfico, Canva, arte y manualidades",
+      seed: "diseño grafico",
+      strong: ["diseno grafico", "canva", "photoshop", "ilustracion", "dibujo", "pintura", "manualidades", "crochet", "tejido", "bordado", "plantillas", "caligrafia", "arte", "design", "procreate"],
+      weak: ["creatividad", "creativo", "colores", "logo", "logos"],
+      categories: ["graphic designer", "artist", "arts & crafts", "design"]
+    },
+    {
+      id: "gaming",
+      label: "Videojuegos y gaming",
+      description: "juegos, consolas, apuestas y casinos online",
+      seed: "juegos",
+      strong: ["videojuego", "videojuegos", "juego", "jogo", "game", "gaming", "jugar", "consola", "playstation", "xbox", "nintendo", "casino", "apuestas", "slots", "bonus de bienvenida", "free spins"],
+      weak: ["nivel", "jugadores", "partida", "ganar premios"],
+      categories: ["video game", "games", "gaming", "casino", "gambling"]
+    },
+    {
+      id: "ecommerce",
+      label: "E-commerce y dropshipping",
+      description: "tiendas online, dropshipping, Shopify y envíos",
+      seed: "pago contra entrega",
+      strong: ["dropshipping", "ecommerce", "e commerce", "tienda online", "shopify", "pago contra entrega", "contra entrega", "envio gratis", "envios a todo el pais", "compra ahora", "stock limitado", "ultimas unidades", "producto ganador", "mayorista", "por mayor"],
+      weak: ["pedido", "pedidos", "envio", "envios", "tienda", "comprar"],
+      categories: ["shopping & retail", "e-commerce website", "retail company"]
+    },
+    {
+      id: "seguros",
+      label: "Seguros",
+      description: "seguros de vida, salud, auto y hogar",
+      seed: "seguro de vida",
+      strong: ["seguro", "seguros", "seguro de vida", "seguro de salud", "seguro de auto", "soat", "poliza", "aseguradora", "cobertura", "insurance"],
+      weak: ["proteccion", "protege a tu familia", "asistencia"],
+      categories: ["insurance", "insurance agent", "insurance company"]
+    },
+    {
+      id: "moda",
+      label: "Moda y accesorios",
+      description: "ropa, calzado, bolsos, joyas y relojes",
+      seed: "ropa mujer",
+      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisetas", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "pantalones", "pantalon", "falda", "conjunto", "conjuntos", "shorts", "medias", "pijama", "sudadera", "hoodie", "joyeria", "anillo", "collar", "aretes", "pulsera", "reloj", "relojes", "lentes de sol", "gafas", "plata 925"],
+      weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "boutique", "accesorios"],
+      categories: ["clothing", "fashion", "shoe", "apparel", "boutique", "jewelry", "watch", "accessories"]
+    },
+    {
+      id: "inversiones",
+      label: "Inversiones y bolsa",
+      description: "acciones, fondos, rentabilidad y patrimonio",
+      seed: "invertir",
+      strong: ["invertir", "inversion", "inversiones", "investir", "investimento", "acciones", "bolsa de valores", "fondos de inversion", "etf", "dividendos", "rentabilidad", "renta pasiva", "patrimonio", "cdt", "interes compuesto", "investing"],
+      weak: ["rendimiento", "capital", "ganancias", "portafolio"],
+      categories: ["investing service", "investment", "financial planner"]
+    },
+    {
+      id: "ventas",
+      label: "Ventas y prospección",
+      description: "vender más, cierre de ventas, prospectos y CRM",
+      seed: "cerrar ventas",
+      strong: ["vender mas", "cerrar ventas", "cierre de ventas", "tecnicas de venta", "prospeccion", "prospectos", "vendedores", "equipo comercial", "whatsapp business", "ventas por whatsapp", "sales", "objeciones"],
+      weak: ["ventas", "vendas", "vender", "clientes", "comercial"],
+      categories: ["sales"]
+    },
+    {
+      id: "fotografia",
+      label: "Fotografía y video",
+      description: "cámaras, fotografía y edición de video",
+      seed: "fotografia",
+      strong: ["fotografia", "fotografo", "camara", "camaras", "lightroom", "presets", "sesion de fotos", "filmmaking", "drone", "edicion de fotos", "photography", "videografia"],
+      weak: ["fotos", "foto", "video", "lente"],
+      categories: ["photographer", "photography", "videographer"]
+    },
+    {
+      id: "trading",
+      label: "Trading",
+      description: "forex, cripto, opciones y señales",
+      seed: "trading",
+      strong: ["trading", "trader", "forex", "criptomonedas", "cripto", "bitcoin", "btc", "binance", "opciones binarias", "senales de trading", "scalping", "analisis tecnico", "crypto", "nasdaq"],
+      weak: ["mercado", "velas", "graficos", "apalancamiento"],
+      categories: ["cryptocurrency", "trading", "brokerage"]
+    },
+    {
+      id: "eventos",
+      label: "Eventos y experiencias",
+      description: "conciertos, entradas, talleres presenciales y ferias",
+      seed: "entradas concierto",
+      strong: ["entradas", "ingressos", "tickets", "boletas", "concierto", "festival", "evento", "eventos", "teatro", "conferencia", "congreso", "expo", "feria", "taller presencial"],
+      weak: ["experiencia", "en vivo", "ao vivo", "live", "noche", "cupos"],
+      categories: ["event", "concert", "entertainment", "event planner", "performance venue"]
+    },
+    {
+      id: "legal",
+      label: "Legal y trámites",
+      description: "abogados, visas, migración, trámites e impuestos",
+      seed: "abogado",
+      strong: ["abogado", "abogados", "advogado", "visa", "visas", "migracion", "pasaporte", "ciudadania", "residencia", "tramite", "tramites", "impuestos", "declaracion de renta", "demanda", "pension", "divorcio", "lawyer"],
+      weak: ["legal", "derechos", "asesoria legal", "juridico"],
+      categories: ["lawyer", "legal", "law firm", "immigration lawyer", "tax preparation"]
     },
     {
       id: "viajes",
       label: "Viajes y turismo",
-      strong: ["vuelos", "pasajes", "passagens", "hotel", "hoteles", "resort", "paquetes turisticos", "vacaciones", "ferias", "travel", "crucero", "all inclusive", "todo incluido", "agencia de viajes", "excursion", "tour", "hospedaje", "airbnb", "destino"],
+      description: "vuelos, hoteles, paquetes y tours",
+      seed: "viajes",
+      strong: ["vuelos", "pasajes", "passagens", "hotel", "hoteles", "resort", "paquetes turisticos", "vacaciones", "travel", "crucero", "todo incluido", "agencia de viajes", "excursion", "tour", "hospedaje", "airbnb", "destino"],
       weak: ["viaje", "viajar", "viagem", "turismo", "playa", "praia", "aventura", "escapada"],
       categories: ["travel", "hotel", "tour", "airline", "tourism"]
     },
     {
+      id: "inmobiliaria",
+      label: "Bienes raíces",
+      description: "venta y alquiler de propiedades, proyectos y lotes",
+      seed: "apartamentos",
+      strong: ["departamento", "departamentos", "apartamento", "apartamentos", "casa en venta", "venta de casas", "alquiler", "arriendo", "inmobiliaria", "imobiliaria", "real estate", "lotes", "terrenos", "preventa", "condominio", "bienes raices", "propiedad", "propiedades", "proyecto de vivienda", "vis"],
+      weak: ["casa propia", "credito hipotecario", "metros cuadrados", "m2", "entrega inmediata"],
+      categories: ["real estate", "property", "apartment", "inmobiliaria"]
+    },
+    {
+      id: "leads",
+      label: "Generación de leads",
+      description: "formularios, cotizaciones, citas y registros",
+      seed: "cotiza gratis",
+      strong: ["cotiza", "cotizacion", "cotizar", "solicita informacion", "dejanos tus datos", "agenda tu cita", "agenda una cita", "registrate", "formulario", "asesor te contactara", "te llamamos", "solicita tu", "get a quote"],
+      weak: ["contactanos", "escribenos", "informacion"],
+      categories: []
+    },
+    {
+      id: "tecnologia",
+      label: "Tecnología y gadgets",
+      description: "celulares, audífonos y accesorios electrónicos",
+      seed: "audífonos",
+      strong: ["smartphone", "celular", "iphone", "android", "auriculares", "audifonos", "fone de ouvido", "smartwatch", "laptop", "notebook", "computadora", "tablet", "gadget", "cargador", "bluetooth", "parlante", "camara de seguridad", "consola", "funda para telefono", "power bank"],
+      weak: ["tecnologia", "technology", "tech", "wifi", "inteligente", "electronica", "pantalla", "bateria"],
+      categories: ["electronics", "computer", "technology", "mobile phone shop"]
+    },
+    {
       id: "automotriz",
       label: "Automotriz y movilidad",
-      strong: ["auto", "autos", "carro", "carros", "coche", "vehiculo", "vehiculos", "camioneta", "suv", "concesionario", "concesionaria", "0km", "0 km", "test drive", "neumaticos", "llantas", "repuestos", "taller mecanico", "moto", "motos", "motocicleta", "scooter electrico"],
-      weak: ["manejar", "conducir", "motor", "financiacion", "kilometros", "seminuevo", "usados"],
+      description: "autos, motos, repuestos y concesionarios",
+      seed: "carros",
+      strong: ["auto", "autos", "carro", "carros", "coche", "vehiculo", "vehiculos", "camioneta", "suv", "concesionario", "concesionaria", "0km", "test drive", "neumaticos", "llantas", "repuestos", "taller mecanico", "moto", "motos", "motocicleta", "scooter electrico"],
+      weak: ["manejar", "conducir", "motor", "kilometros", "seminuevo", "usados"],
       categories: ["automotive", "car dealership", "motorcycle", "vehicle", "auto"]
     },
     {
-      id: "bebes",
-      label: "Bebés y maternidad",
-      strong: ["bebe", "bebes", "embarazo", "embarazada", "gestante", "lactancia", "maternidad", "panales", "fraldas", "recien nacido", "baby", "mama primeriza", "cochecito", "carriola", "juguetes", "infantil", "ninos", "criancas"],
-      weak: ["hijos", "hijo", "mamas", "maes", "familia", "crianza"],
-      categories: ["baby", "kids", "children", "toy", "maternity"]
-    },
-    {
-      id: "apps_juegos",
-      label: "Apps y juegos",
-      strong: ["descarga la app", "descargar", "baixe", "download", "app store", "google play", "juego", "jogo", "game", "gaming", "jugar", "casino", "apuestas", "slots", "bonus de bienvenida"],
-      weak: ["aplicacion", "aplicativo", "app", "nivel", "jugadores", "online"],
-      categories: ["app page", "video game", "games", "gaming", "casino"]
-    },
-    {
-      id: "desarrollo_personal",
-      label: "Desarrollo personal y espiritualidad",
-      strong: ["autoestima", "mentalidad", "mindset", "coaching", "coach", "proposito de vida", "manifestar", "ley de atraccion", "meditacion", "espiritualidad", "tarot", "astrologia", "horoscopo", "energia espiritual", "sanacion", "constelaciones", "relaciones de pareja", "reconquistar"],
-      weak: ["transformacion", "crecimiento personal", "abundancia", "sanar", "felicidad", "emociones"],
-      categories: ["coach", "spiritual", "religious", "astrologist", "life coach", "psychologist"]
+      id: "alimentos",
+      label: "Alimentos y bebidas",
+      description: "snacks, bebidas, café y productos de consumo",
+      seed: "snacks",
+      strong: ["snack", "snacks", "mani", "crema de mani", "mantequilla de mani", "galletas", "granola", "cereal", "chocolate", "helado", "cafe", "cerveza", "vino", "vinos", "bebida", "bebidas", "jugo", "jugos", "salsa", "arepas", "empanadas", "organico", "vegano"],
+      weak: ["sabor", "delicioso", "antojo", "merienda"],
+      categories: ["food & beverage", "beverage", "grocery", "winery", "brewery", "food"]
     },
     {
       id: "servicios",
-      label: "Servicios profesionales",
-      strong: ["abogado", "abogados", "advogado", "estudio juridico", "contador", "contabilidad", "impuestos", "asesoria", "consultoria", "seguro", "plomero", "electricista", "mudanzas", "fletes", "limpieza de oficinas", "agencia", "estudio contable", "arquitecto", "remodelacion", "reformas", "energia solar", "paneles solares"],
-      weak: ["servicio", "servicios", "servicos", "services", "presupuesto", "cotiza", "cotizacion", "profesionales", "atencion"],
-      categories: ["lawyer", "legal", "accountant", "contractor", "service", "consulting", "plumber", "electrician", "solar"]
-    },
-    {
-      id: "eventos",
-      label: "Eventos y entretenimiento",
-      strong: ["entradas", "ingressos", "tickets", "concierto", "show", "festival", "evento", "eventos", "teatro", "cine", "estreno", "streaming", "serie", "pelicula", "conferencia", "congreso", "expo"],
-      weak: ["entretenimiento", "musica", "en vivo", "ao vivo", "live", "noche"],
-      categories: ["event", "musician", "band", "concert", "entertainment", "movie", "tv"]
+      label: "Servicios y hogar",
+      description: "plomería, limpieza, reformas, mudanzas y energía solar",
+      seed: "energia solar",
+      strong: ["plomero", "electricista", "mudanzas", "fletes", "limpieza de oficinas", "remodelacion", "reformas", "energia solar", "paneles solares", "fumigacion", "cerrajero", "aire acondicionado", "instalacion", "mantenimiento"],
+      weak: ["servicio", "servicios", "servicos", "services", "presupuesto", "a domicilio"],
+      categories: ["contractor", "service", "plumber", "electrician", "solar", "cleaning service"]
     }
   ];
   var NICHE_LABELS = Object.fromEntries(NICHES.map((n) => [n.id, n.label]));
+  var NICHE_BY_ID = Object.fromEntries(NICHES.map((n) => [n.id, n]));
   function nicheLabel(id) {
-    if (!id) return "Sin clasificar";
+    if (!id || id === "none") return "Sin clasificar";
     return NICHE_LABELS[id] ?? id;
   }
 
   // src/lib/niche/rules.ts
+  var CHANNEL_NICHES = /* @__PURE__ */ new Set(["ecommerce", "leads"]);
+  var termCache = /* @__PURE__ */ new Map();
+  function termRegex(term) {
+    if (!termCache.has(term)) {
+      const t = normalizeText(term);
+      termCache.set(term, t ? new RegExp(`(?:^| )${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?= |$)`, "g") : null);
+    }
+    return termCache.get(term);
+  }
   function countTerm(haystack, term) {
-    const t = normalizeText(term);
-    if (!t) return 0;
-    const re = new RegExp(`(?:^| )${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?= |$)`, "g");
+    const re = termRegex(term);
+    if (!re) return 0;
+    re.lastIndex = 0;
     return (haystack.match(re) ?? []).length;
   }
   function classifyByRules(input) {
@@ -650,20 +925,24 @@ var CifraCore = (() => {
       [input.title, input.body, input.linkDescription, input.pageName, (input.caption ?? "").replace(/\./g, " ")].filter(Boolean).join(" ")
     )} `;
     const cats = normalizeText((input.categories ?? []).join(" | "));
-    let best = null;
+    const scored = [];
     let total = 0;
     for (const n of NICHES) {
       let score = 0;
       const terms = [];
+      let rest = text;
       for (const term of n.strong) {
         const c = countTerm(text, term);
         if (c) {
           score += 2 * Math.min(c, 3);
           terms.push(term);
+          const re = termRegex(term);
+          re.lastIndex = 0;
+          rest = rest.replace(re, " ");
         }
       }
       for (const term of n.weak) {
-        const c = countTerm(text, term);
+        const c = countTerm(rest, term);
         if (c) {
           score += Math.min(c, 3);
           terms.push(term);
@@ -676,13 +955,67 @@ var CifraCore = (() => {
         }
       }
       total += score;
-      if (score > 0 && (!best || score > best.score)) best = { id: n.id, score, terms };
+      if (score > 0) scored.push({ id: n.id, score: CHANNEL_NICHES.has(n.id) ? score * 0.6 : score, terms });
     }
-    if (!best || best.score < 2) return { niche: null, confidence: 0, terms: [] };
+    scored.sort((a, b) => b.score - a.score);
+    const best = scored[0];
+    if (!best || best.score < 1.2) return { niche: null, niches: [], confidence: 0, terms: [] };
+    const niches = scored.filter((s) => s.score >= Math.max(1.2, best.score * 0.45)).slice(0, 3).map((s) => s.id);
     const share = best.score / total;
     const volume = Math.min(1, best.score / 8);
-    const confidence = Math.round(share * volume * 100) / 100;
-    return { niche: best.id, confidence, terms: best.terms.slice(0, 8) };
+    return { niche: best.id, niches, confidence: Math.round(share * volume * 100) / 100, terms: best.terms.slice(0, 8) };
+  }
+
+  // src/lib/price.ts
+  var CURRENCY = [
+    [/^AR\$$/i, "ARS"],
+    [/^US\$$/i, "USD"],
+    [/^USD$/i, "USD"],
+    [/^R\$$/i, "BRL"],
+    [/^S\/\.?$/i, "PEN"],
+    [/^COP$/i, "COP"],
+    [/^MXN$/i, "MXN"],
+    [/^CLP$/i, "CLP"],
+    [/^€|EUR$/i, "EUR"],
+    [/^\$$/, "$"]
+  ];
+  var PREFIX = String.raw`(AR\$|US\$|R\$|S\/\.?|COP|MXN|CLP|USD|EUR|€|\$)\s?`;
+  var NUMBER = String.raw`(\d{1,3}(?:[.,\s]\d{3})+(?:[.,]\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)`;
+  var SUFFIX = String.raw`\s?(USD|COP|MXN|CLP|EUR|€|pesos|d[oó]lares|reales|soles)`;
+  function parseAmount(raw) {
+    let s = raw.replace(/\s/g, "");
+    const lastSep = Math.max(s.lastIndexOf("."), s.lastIndexOf(","));
+    if (lastSep >= 0 && s.length - lastSep - 1 <= 2 && s.length - lastSep - 1 > 0) {
+      s = s.slice(0, lastSep).replace(/[.,]/g, "") + "." + s.slice(lastSep + 1);
+    } else {
+      s = s.replace(/[.,]/g, "");
+    }
+    const n = Number(s);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  function currencyOf(sym) {
+    for (const [re, code] of CURRENCY) if (re.test(sym.trim())) return code;
+    const s = sym.toLowerCase();
+    if (s.startsWith("peso")) return "$";
+    if (s.startsWith("d")) return "USD";
+    if (s.startsWith("real")) return "BRL";
+    if (s.startsWith("sol")) return "PEN";
+    return null;
+  }
+  function extractPrice(...parts) {
+    const text = parts.filter(Boolean).join(" \n ");
+    if (!text) return null;
+    const pre = new RegExp(`${PREFIX}${NUMBER}(?!\\s?%)`, "i").exec(text);
+    if (pre) {
+      const amount = parseAmount(pre[2]);
+      if (amount && amount >= 1) return { text: `${pre[1].replace(/\s+/g, "")} ${pre[2].trim()}`, amount, currency: currencyOf(pre[1]) };
+    }
+    const post = new RegExp(`${NUMBER}${SUFFIX}\\b`, "i").exec(text);
+    if (post) {
+      const amount = parseAmount(post[1]);
+      if (amount && amount >= 1) return { text: `${post[1].trim()} ${post[2]}`, amount, currency: currencyOf(post[2]) };
+    }
+    return null;
   }
 
   // src/lib/merge.ts
@@ -753,6 +1086,7 @@ var CifraCore = (() => {
     const offers = detectOffers(body, title, linkDescription);
     const language = languages[0] ?? detectLanguage([body, title, linkDescription].filter(Boolean).join(" "));
     let niche = e?.niche ?? null;
+    let niches = e?.niches ?? (niche ? [niche] : []);
     let nicheConfidence = e?.nicheConfidence ?? null;
     let nicheSource = e?.nicheSource ?? null;
     let nicheTerms = e?.nicheTerms ?? [];
@@ -767,6 +1101,7 @@ var CifraCore = (() => {
         categories: ad.advertiser?.categories
       });
       niche = r.niche;
+      niches = r.niches;
       nicheConfidence = r.confidence;
       nicheSource = r.niche ? "rules" : null;
       nicheTerms = r.terms;
@@ -798,10 +1133,13 @@ var CifraCore = (() => {
       messageHash: hash,
       offers,
       niche,
+      niches,
       nicheConfidence,
       nicheSource,
       nicheTerms,
       euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
+      price: extractPrice(title, body, linkDescription) ?? e?.price ?? null,
+      variants: pick(ad.variants, e?.variants),
       sources,
       queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
       ...bestRank(e, ctx, countries),
@@ -847,6 +1185,8 @@ var CifraCore = (() => {
       totalAds: existing?.totalAds ?? 0,
       activeAds: existing?.activeAds ?? 0,
       landingCount: existing?.landingCount ?? 0,
+      metaActiveCount: existing?.metaActiveCount ?? null,
+      metaCountAt: existing?.metaCountAt ?? null,
       firstSeenAt: existing?.firstSeenAt ?? now,
       lastSeenAt: now
     };
@@ -1077,6 +1417,8 @@ var CifraCore = (() => {
       collationId: str(node.collation_id) ?? (num(node.collation_id) !== null ? String(node.collation_id) : null),
       collationCount: num(node.collation_count),
       euTotalReach: null,
+      // Anuncios dinámicos: cada tarjeta es una versión distinta del mismo anuncio.
+      variants: displayFormat === "DCO" && cards.length > 1 ? cards.length : null,
       advertiser: {
         pageUrl: str(snapshot.page_profile_uri),
         avatarUrl: str(snapshot.page_profile_picture_url),
@@ -1155,7 +1497,7 @@ var CifraCore = (() => {
 
   // src/ext/store.ts
   var DB_NAME = "cifra-radar";
-  var DB_VERSION = 1;
+  var DB_VERSION = 2;
   var RETENTION_DAYS = 180;
   function req(r) {
     return new Promise((resolve, reject) => {
@@ -1213,6 +1555,8 @@ var CifraCore = (() => {
         if (!d.objectStoreNames.contains("advertisers")) d.createObjectStore("advertisers", { keyPath: "pageId" });
         if (!d.objectStoreNames.contains("favorites")) d.createObjectStore("favorites", { keyPath: "adId" });
         if (!d.objectStoreNames.contains("log")) d.createObjectStore("log", { keyPath: "id", autoIncrement: true });
+        if (!d.objectStoreNames.contains("follows")) d.createObjectStore("follows", { keyPath: "pageId" });
+        if (!d.objectStoreNames.contains("products")) d.createObjectStore("products", { keyPath: "id" });
       };
       return new _LocalStore(await req(r));
     }
@@ -1288,13 +1632,58 @@ var CifraCore = (() => {
     async ingestExtensionPayload(p) {
       if (!isAdLibraryUrl(p.pageUrl)) throw new Error("Solo se aceptan capturas hechas en facebook.com/ads/library.");
       const { ads, countries } = mapExtensionPayload(p);
-      return this.ingest(ads, {
+      const pageId = p.query?.pageId && /^\d{3,25}$/.test(p.query.pageId) ? p.query.pageId : null;
+      const count = Number(p.resultCount);
+      const result = await this.ingest(ads, {
         source: "extension",
         queryCountries: countries,
         query: p.query?.q ?? null,
         ranks: p.query?.sort === "total_impressions" && p.ranks ? sanitizeRanks(p.ranks) : void 0,
         context: { q: p.query?.q ?? null, country: countries[0] ?? null }
       });
+      if (pageId && Number.isFinite(count) && count > 0) await this.setMetaCount(pageId, count);
+      return result;
+    }
+    async setMetaCount(pageId, count) {
+      const adv = await this.get("advertisers", pageId);
+      if (!adv) return;
+      const tx = this.idb.transaction("advertisers", "readwrite");
+      tx.objectStore("advertisers").put({ ...adv, metaActiveCount: Math.round(count), metaCountAt: (/* @__PURE__ */ new Date()).toISOString() });
+      await done(tx);
+    }
+    async follows() {
+      return new Map((await this.getAll("follows")).map((f) => [f.pageId, f]));
+    }
+    async follow(pageId, name) {
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const tx = this.idb.transaction("follows", "readwrite");
+      tx.objectStore("follows").put({ pageId, name, followedAt: now, seenAt: now, refreshedAt: null });
+      await done(tx);
+    }
+    async unfollow(pageId) {
+      const tx = this.idb.transaction("follows", "readwrite");
+      tx.objectStore("follows").delete(pageId);
+      await done(tx);
+    }
+    async touchFollow(pageId, patch) {
+      const f = await this.get("follows", pageId);
+      if (!f) return;
+      const tx = this.idb.transaction("follows", "readwrite");
+      tx.objectStore("follows").put({ ...f, ...patch });
+      await done(tx);
+    }
+    async products() {
+      return this.getAll("products");
+    }
+    async saveProduct(product) {
+      const tx = this.idb.transaction("products", "readwrite");
+      tx.objectStore("products").put(product);
+      await done(tx);
+    }
+    async deleteProduct(id) {
+      const tx = this.idb.transaction("products", "readwrite");
+      tx.objectStore("products").delete(id);
+      await done(tx);
     }
     /** Recalcula puntuación y agregados de los anunciantes indicados (o de todos). */
     async recompute(pageIds, now = /* @__PURE__ */ new Date()) {
@@ -1343,6 +1732,7 @@ var CifraCore = (() => {
           landingDomain: landing?.domain ?? null,
           linkUrl: landing?.url ?? null
         };
+        next.price = extractPrice(next.title, next.body, next.linkDescription);
         if (a.nicheSource !== "ai" && a.nicheSource !== "manual") {
           const r = classifyByRules({
             body: next.body,
@@ -1353,6 +1743,7 @@ var CifraCore = (() => {
             categories: advs.get(a.pageId)?.categories
           });
           next.niche = r.niche;
+          next.niches = r.niches;
           next.nicheConfidence = r.confidence;
           next.nicheSource = r.niche ? "rules" : null;
           next.nicheTerms = r.terms;
@@ -1376,8 +1767,8 @@ var CifraCore = (() => {
       return stale.length;
     }
     async clear() {
-      const tx = this.idb.transaction(["ads", "advertisers", "favorites", "log"], "readwrite");
-      for (const s of ["ads", "advertisers", "favorites", "log"]) tx.objectStore(s).clear();
+      const tx = this.idb.transaction(["ads", "advertisers", "favorites", "log", "follows"], "readwrite");
+      for (const s of ["ads", "advertisers", "favorites", "log", "follows"]) tx.objectStore(s).clear();
       await done(tx);
     }
     async exportAll() {

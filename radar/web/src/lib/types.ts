@@ -49,6 +49,8 @@ export interface RawAd {
   /** "N anuncios usan esta creatividad y este texto". */
   collationCount: number | null;
   euTotalReach: number | null;
+  /** Versiones del anuncio («Este anuncio tiene varias versiones»). */
+  variants?: number | null;
   advertiser?: {
     pageUrl?: string | null;
     avatarUrl?: string | null;

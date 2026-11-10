@@ -147,6 +147,8 @@ export function mapLibraryNode(node: unknown, ctx: LibraryContext): RawAd | null
     collationId: str(node.collation_id) ?? (num(node.collation_id) !== null ? String(node.collation_id) : null),
     collationCount: num(node.collation_count),
     euTotalReach: null,
+    // Anuncios dinámicos: cada tarjeta es una versión distinta del mismo anuncio.
+    variants: displayFormat === "DCO" && cards.length > 1 ? cards.length : null,
     advertiser: {
       pageUrl: str(snapshot.page_profile_uri),
       avatarUrl: str(snapshot.page_profile_picture_url),

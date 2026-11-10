@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Cifra Radar — Puente con la Biblioteca de Anuncios",
   "short_name": "Cifra Radar",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Descubre y guarda anuncios reales de la Biblioteca de Anuncios de Meta: busca por ti desde tu Chrome, categoriza por nicho y explora todo en tu radar local.",
   "minimum_chrome_version": "111",
   "icons": {

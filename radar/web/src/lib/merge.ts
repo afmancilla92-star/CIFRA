@@ -5,6 +5,7 @@
 import { normalizeLanding } from "./landing";
 import { detectLanguage } from "./lang";
 import { classifyByRules } from "./niche/rules";
+import { extractPrice, type Price } from "./price";
 import { detectOffers, messageHash } from "./text";
 import type { AdFormat, MediaItem, Platform, RawAd, ScoreSignal, SourceKind } from "./types";
 
@@ -35,10 +36,16 @@ export interface AdRecord {
   messageHash: string | null;
   offers: string[];
   niche: string | null;
+  /** Todos los nichos del anuncio (el principal primero). */
+  niches?: string[];
   nicheConfidence: number | null;
   nicheSource: string | null;
   nicheTerms: string[];
   euTotalReach: number | null;
+  /** Precio que menciona el anuncio (texto del anunciante). */
+  price?: Price | null;
+  /** Versiones del anuncio (anuncios dinámicos). */
+  variants?: number | null;
   sources: SourceKind[];
   /** Búsquedas (palabras clave) en las que apareció el anuncio. */
   queries?: string[];
@@ -67,6 +74,9 @@ export interface AdvertiserRecord {
   totalAds: number;
   activeAds: number;
   landingCount: number;
+  /** Anuncios activos que la Biblioteca informa para la página («~225 resultados»). */
+  metaActiveCount?: number | null;
+  metaCountAt?: string | null;
   firstSeenAt: string;
   lastSeenAt: string;
 }
@@ -167,6 +177,7 @@ export function mergeAd(existing: AdRecord | null, ad: RawAd, ctx: MergeContext)
 
   // Nicho: se respeta una clasificación por IA o manual mientras el mensaje no cambie.
   let niche = e?.niche ?? null;
+  let niches = e?.niches ?? (niche ? [niche] : []);
   let nicheConfidence = e?.nicheConfidence ?? null;
   let nicheSource = e?.nicheSource ?? null;
   let nicheTerms = e?.nicheTerms ?? [];
@@ -181,6 +192,7 @@ export function mergeAd(existing: AdRecord | null, ad: RawAd, ctx: MergeContext)
       categories: ad.advertiser?.categories,
     });
     niche = r.niche;
+    niches = r.niches;
     nicheConfidence = r.confidence;
     nicheSource = r.niche ? "rules" : null;
     nicheTerms = r.terms;
@@ -213,10 +225,13 @@ export function mergeAd(existing: AdRecord | null, ad: RawAd, ctx: MergeContext)
     messageHash: hash,
     offers,
     niche,
+    niches,
     nicheConfidence,
     nicheSource,
     nicheTerms,
     euTotalReach: pick(ad.euTotalReach, e?.euTotalReach),
+    price: extractPrice(title, body, linkDescription) ?? e?.price ?? null,
+    variants: pick(ad.variants, e?.variants),
     sources,
     queries: union(e?.queries ?? [], ctx.query?.trim() ? [ctx.query.trim().toLowerCase().slice(0, 80)] : []).slice(-20),
     ...bestRank(e, ctx, countries),
@@ -270,6 +285,8 @@ export function mergeAdvertiser(existing: AdvertiserRecord | null, ad: RawAd, re
     totalAds: existing?.totalAds ?? 0,
     activeAds: existing?.activeAds ?? 0,
     landingCount: existing?.landingCount ?? 0,
+    metaActiveCount: existing?.metaActiveCount ?? null,
+    metaCountAt: existing?.metaCountAt ?? null,
     firstSeenAt: existing?.firstSeenAt ?? now,
     lastSeenAt: now,
   };

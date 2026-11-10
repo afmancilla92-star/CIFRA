@@ -45,7 +45,7 @@ describe("nichos por reglas", () => {
     expect(
       classifyByRules({ body: "¡Descarga la App de Temu hoy!", title: "Conjunto de dos piezas para mujer, pantalones deportivos y camiseta" }).niche,
     ).toBe("moda");
-    expect(classifyByRules({ body: "Descubre la nueva crema de maní con proteína", title: "Nuevo snack" }).niche).toBe("alimentacion");
+    expect(classifyByRules({ body: "Descubre la nueva crema de maní con proteína", title: "Nuevo snack" }).niche).toBe("alimentos");
   });
 
   it("reconoce calzado en inglés y español", () => {

@@ -17,11 +17,25 @@ radar/
 1. Descarga y descomprime la carpeta `radar/extension` (o el zip `cifra-radar-extension.zip`).
 2. En Chrome abre `chrome://extensions`, activa **Modo desarrollador**, pulsa **Cargar descomprimida** y elige esa carpeta
    (la que contiene `manifest.json`). Se abre sola la pestaña **Cifra Radar** con las instrucciones.
-3. En la pestaña **Descubrir**, elige el país y pulsa **«Llenar mi radar ahora»**: Cifra Radar busca por ti en la Biblioteca de
-   Anuncios (una docena de nichos comerciales, editables) y te deja cientos de anuncios categorizados por nicho, con lo que está
-   «escalando», las copias activas y lo que más tiempo lleva activo. También puedes **buscar en la Biblioteca desde el radar** con
-   cualquier palabra clave.
-4. Explora: anuncios con filtros, orden por días activos, puntuación explicada, anunciantes, landing pages, favoritos y respaldo en JSON.
+3. Pulsa **«Llenar mi radar ahora»** (o **Actualizar**, arriba a la derecha): Cifra Radar busca por ti en la Biblioteca de Anuncios
+   (una búsqueda por cada uno de los 45 nichos, los más vistos primero, editables en **Buscar → Radar automático**) y te deja cientos
+   de anuncios reales categorizados. Si se alcanza el límite por hora, espera y continúa sola mientras el radar esté abierto.
+4. Explora, organizado como un buscador de anuncios:
+   - **Descubrir**: barra lateral con **Nicho** (45 categorías, con conteos; un anuncio puede estar en varias), **Días activo**,
+     **Plataforma**, **Destino** (sitio web, WhatsApp, redes, apps), **Formato**, **País**, **Tamaño del anunciante** y **Estado**.
+     Tarjetas con **días activo, copias (🔥 desde 10) y variantes**, precio detectado, «Top #N vistos» y video reproducible. Los
+     anuncios **duplicados** (Meta agrupa las copias de una misma creatividad) se ven apilados y se ordenan con **«🔥 Más duplicados»**.
+     También ordena por escalando, más vistos, más recientes, más días activo y más variantes, y **agrupa por landing**.
+   - **Anunciantes**: marcas con sus anuncios activos, el más longevo, lo que más duplican y sus nichos. En cada anunciante:
+     **Seguir**, **«Traer todos sus anuncios»** (abre su página de la Biblioteca) y los **~activos que informa Meta**.
+   - **Siguiendo**: tus marcas seguidas y **lo nuevo** desde tu última visita; «Actualizar» las revisa primero.
+   - **Buscar**: cualquier palabra clave en la Biblioteca con país, orden (más vistos o relevancia), estado, formato, plataforma,
+     idioma y tamaño del anunciante; búsquedas recientes y la lista del **radar automático**.
+   - **Studio**: arma la base de tu producto en 3 pasos (la base, la venta, el negocio) y genera la **oferta, 3 anuncios, la
+     estructura de la landing y respuestas a objeciones**, inspirándote en tus favoritos. Sin clave usa plantillas; con tu propia
+     clave de Anthropic (se guarda solo en ese Chrome) lo escribe Claude. No inventa testimonios, cifras ni resultados.
+   - **Favoritos**: con el corazón de cualquier anuncio o **pegando el enlace** de un anuncio de la Biblioteca.
+   - **Tus datos** (engranaje): respaldo JSON, importar, volver a clasificar y borrar.
    Si prefieres buscar tú mismo en la Biblioteca, el panel de abajo a la derecha tiene **«Guardar en Cifra Radar»**.
 
 **Los más vistos:** las búsquedas del radar usan el orden **«Impresiones totales»** de la Biblioteca (los anuncios más vistos
@@ -96,7 +110,8 @@ Se muestra siempre con la aclaración de que **no mide ventas, conversiones ni r
 
 ### Nichos
 
-1. **Reglas** (siempre): ~20 nichos con palabras clave en español, portugués e inglés + categorías de la página. Guarda los términos que
+1. **Reglas** (siempre): 45 nichos (salud, cursos, finanzas, moda, belleza, hogar, mascotas, software, inmobiliaria…) con palabras
+   clave en español, portugués e inglés + categorías de la página. Un anuncio puede pertenecer a varios nichos (hasta 3). Guarda los términos que
    justifican la clasificación y una confianza orientativa.
 2. **IA (opcional)**: con `ANTHROPIC_API_KEY`, los anuncios sin nicho claro se clasifican con Claude (`AI_CLASSIFY_MODEL`, por defecto
    `claude-opus-5-5`, esfuerzo bajo, salida JSON estructurada y respaldo automático ante rechazos). Solo se envía el texto público del anuncio.

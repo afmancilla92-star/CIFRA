@@ -7,18 +7,28 @@ import { computeAdvertiserStats } from "../lib/advertiser-stats";
 import { normalizeLanding } from "../lib/landing";
 import { mergeAd, mergeAdvertiser, prepareBatch, type AdRecord, type AdvertiserRecord } from "../lib/merge";
 import { classifyByRules } from "../lib/niche/rules";
+import { extractPrice } from "../lib/price";
 import { cleanTemplate, mapDomCard, mapLibraryNode, type DomCard } from "../lib/sources/library-page";
 import { mapArchivedAd, type MetaArchivedAd } from "../lib/sources/meta-api";
 import type { RawAd, SourceKind } from "../lib/types";
 
 const DB_NAME = "cifra-radar";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 export const RETENTION_DAYS = 180;
 
 export interface Favorite {
   adId: string;
   note: string | null;
   createdAt: string;
+}
+
+export interface Follow {
+  pageId: string;
+  name: string;
+  followedAt: string;
+  /** Última vez que el usuario revisó lo nuevo de este anunciante. */
+  seenAt: string;
+  refreshedAt: string | null;
 }
 
 export interface LogEntry {
@@ -44,6 +54,8 @@ export interface LocalIngestResult {
 export interface ExtensionPayload {
   pageUrl: string;
   query?: { country?: string | null; q?: string | null; pageId?: string | null; sort?: string | null };
+  /** Total de resultados que informa la Biblioteca para esa búsqueda o anunciante. */
+  resultCount?: number;
   /** Posición de cada anuncio cuando la búsqueda está ordenada por impresiones totales. */
   ranks?: Record<string, number>;
   nodes?: unknown[];
@@ -120,6 +132,8 @@ export class LocalStore {
       if (!d.objectStoreNames.contains("advertisers")) d.createObjectStore("advertisers", { keyPath: "pageId" });
       if (!d.objectStoreNames.contains("favorites")) d.createObjectStore("favorites", { keyPath: "adId" });
       if (!d.objectStoreNames.contains("log")) d.createObjectStore("log", { keyPath: "id", autoIncrement: true });
+      if (!d.objectStoreNames.contains("follows")) d.createObjectStore("follows", { keyPath: "pageId" });
+      if (!d.objectStoreNames.contains("products")) d.createObjectStore("products", { keyPath: "id" });
     };
     return new LocalStore(await req(r));
   }
@@ -216,13 +230,67 @@ export class LocalStore {
   async ingestExtensionPayload(p: ExtensionPayload) {
     if (!isAdLibraryUrl(p.pageUrl)) throw new Error("Solo se aceptan capturas hechas en facebook.com/ads/library.");
     const { ads, countries } = mapExtensionPayload(p);
-    return this.ingest(ads, {
+    const pageId = p.query?.pageId && /^\d{3,25}$/.test(p.query.pageId) ? p.query.pageId : null;
+    const count = Number(p.resultCount);
+    const result = await this.ingest(ads, {
       source: "extension",
       queryCountries: countries,
       query: p.query?.q ?? null,
       ranks: p.query?.sort === "total_impressions" && p.ranks ? sanitizeRanks(p.ranks) : undefined,
       context: { q: p.query?.q ?? null, country: countries[0] ?? null },
     });
+    // En la vista de un anunciante, la Biblioteca informa cuántos anuncios activos tiene.
+    if (pageId && Number.isFinite(count) && count > 0) await this.setMetaCount(pageId, count);
+    return result;
+  }
+
+  async setMetaCount(pageId: string, count: number) {
+    const adv = await this.get<AdvertiserRecord>("advertisers", pageId);
+    if (!adv) return;
+    const tx = this.idb.transaction("advertisers", "readwrite");
+    tx.objectStore("advertisers").put({ ...adv, metaActiveCount: Math.round(count), metaCountAt: new Date().toISOString() });
+    await done(tx);
+  }
+
+  async follows(): Promise<Map<string, Follow>> {
+    return new Map((await this.getAll<Follow>("follows")).map((f) => [f.pageId, f]));
+  }
+
+  async follow(pageId: string, name: string) {
+    const now = new Date().toISOString();
+    const tx = this.idb.transaction("follows", "readwrite");
+    tx.objectStore("follows").put({ pageId, name, followedAt: now, seenAt: now, refreshedAt: null } satisfies Follow);
+    await done(tx);
+  }
+
+  async unfollow(pageId: string) {
+    const tx = this.idb.transaction("follows", "readwrite");
+    tx.objectStore("follows").delete(pageId);
+    await done(tx);
+  }
+
+  async touchFollow(pageId: string, patch: Partial<Follow>) {
+    const f = await this.get<Follow>("follows", pageId);
+    if (!f) return;
+    const tx = this.idb.transaction("follows", "readwrite");
+    tx.objectStore("follows").put({ ...f, ...patch });
+    await done(tx);
+  }
+
+  async products<T = Record<string, unknown>>(): Promise<T[]> {
+    return this.getAll<T>("products");
+  }
+
+  async saveProduct(product: { id: string } & Record<string, unknown>) {
+    const tx = this.idb.transaction("products", "readwrite");
+    tx.objectStore("products").put(product);
+    await done(tx);
+  }
+
+  async deleteProduct(id: string) {
+    const tx = this.idb.transaction("products", "readwrite");
+    tx.objectStore("products").delete(id);
+    await done(tx);
   }
 
   /** Recalcula puntuación y agregados de los anunciantes indicados (o de todos). */
@@ -273,6 +341,7 @@ export class LocalStore {
         landingDomain: landing?.domain ?? null,
         linkUrl: landing?.url ?? null,
       };
+      next.price = extractPrice(next.title, next.body, next.linkDescription);
       if (a.nicheSource !== "ai" && a.nicheSource !== "manual") {
         const r = classifyByRules({
           body: next.body,
@@ -283,6 +352,7 @@ export class LocalStore {
           categories: advs.get(a.pageId)?.categories,
         });
         next.niche = r.niche;
+        next.niches = r.niches;
         next.nicheConfidence = r.confidence;
         next.nicheSource = r.niche ? "rules" : null;
         next.nicheTerms = r.terms;
@@ -308,8 +378,8 @@ export class LocalStore {
   }
 
   async clear() {
-    const tx = this.idb.transaction(["ads", "advertisers", "favorites", "log"], "readwrite");
-    for (const s of ["ads", "advertisers", "favorites", "log"]) tx.objectStore(s).clear();
+    const tx = this.idb.transaction(["ads", "advertisers", "favorites", "log", "follows"], "readwrite");
+    for (const s of ["ads", "advertisers", "favorites", "log", "follows"]) tx.objectStore(s).clear();
     await done(tx);
   }
 

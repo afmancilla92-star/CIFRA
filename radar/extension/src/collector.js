@@ -103,7 +103,34 @@
     return nodes;
   }
 
-  const api = { findAdNodes, parseResponseText, extractFromText, cleanNode };
+  /** Total de resultados que informa la Biblioteca para la búsqueda (p. ej. «~225 resultados»). */
+  function findResultCount(value, depth) {
+    depth = depth || 0;
+    if (depth > 40 || value === null || typeof value !== "object") return 0;
+    let best = 0;
+    if (!Array.isArray(value) && isObj(value.search_results_connection)) {
+      const c = Number(value.search_results_connection.count);
+      if (Number.isFinite(c) && c > best) best = c;
+    }
+    for (const k in value) {
+      const v = value[k];
+      if (v !== null && typeof v === "object") best = Math.max(best, findResultCount(v, depth + 1));
+    }
+    return best;
+  }
+
+  /** Anuncios y total de resultados de una respuesta de la página. */
+  function parseAll(text) {
+    const nodes = [];
+    let count = 0;
+    for (const v of parseResponseText(text)) {
+      findAdNodes(v, nodes);
+      count = Math.max(count, findResultCount(v));
+    }
+    return { nodes, count };
+  }
+
+  const api = { findAdNodes, parseResponseText, extractFromText, findResultCount, parseAll, cleanNode };
   root.CifraRadarCollector = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
