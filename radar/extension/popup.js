@@ -30,7 +30,7 @@ async function loadSettings() {
 
 async function refreshTab() {
   const tab = await activeTab();
-  const onLibrary = tab && /^https:\/\/www\.facebook\.com\/ads\/library/.test(tab.url || "");
+  const onLibrary = tab && /^https:\/\/([a-z0-9-]+\.)?facebook\.com\/ads\/library/.test(tab.url || "");
   $("open-library").hidden = Boolean(onLibrary);
   if (!onLibrary) return;
   try {

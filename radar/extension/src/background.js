@@ -86,7 +86,7 @@ async function counts() {
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!msg || typeof msg.type !== "string") return;
-  const fromLibrary = /^https:\/\/www\.facebook\.com\/ads\/library/.test((sender.tab && sender.tab.url) || sender.url || "");
+  const fromLibrary = /^https:\/\/([a-z0-9-]+\.)?facebook\.com\/ads\/library/.test((sender.tab && sender.tab.url) || sender.url || "");
   const fromExtension = sender.id === chrome.runtime.id && !sender.tab;
   if (msg.type === "radar:send" && fromLibrary) {
     saveCapture(msg.payload).then(reply);

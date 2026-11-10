@@ -12,8 +12,13 @@
 (() => {
   if (window.__cifraRadarContent) return;
   window.__cifraRadarContent = true;
+  console.info(`[Cifra Radar] script cargado en ${location.host}`);
 
   const C = globalThis.CifraRadarCollector;
+  if (!C) {
+    console.error("[Cifra Radar] falta collector.js: reinstala la extensión desde la carpeta completa.");
+    return;
+  }
   const VERSION = chrome.runtime.getManifest().version;
   const BATCH = 250;
   const buffer = new Map(); // ad_archive_id -> nodo
@@ -105,7 +110,7 @@
       const anchors = Array.from(card.querySelectorAll("a[href]"));
       const links = anchors.map((a) => a.href).filter((h) => /^https?:\/\//.test(h)).slice(0, 20);
       const pageAnchor = anchors.find(
-        (a) => /^https:\/\/www\.facebook\.com\/[^/?#]+\/?$/.test(a.href) && (a.innerText || "").trim().length > 1,
+        (a) => /^https:\/\/([a-z0-9-]+\.)?facebook\.com\/[^/?#]+\/?$/.test(a.href) && (a.innerText || "").trim().length > 1,
       );
       cards.push({
         libraryId: id,
