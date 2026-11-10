@@ -710,6 +710,16 @@ document.addEventListener("keydown", (e) => {
 
 (async () => {
   state.store = await LocalStore.open();
+  // Aplica mejoras de clasificación de versiones nuevas a los anuncios ya guardados.
+  const DATA_VERSION = "2";
+  try {
+    if (localStorage.getItem("cifra-data-version") !== DATA_VERSION) {
+      await state.store.reindex();
+      localStorage.setItem("cifra-data-version", DATA_VERSION);
+    }
+  } catch {
+    /* sin localStorage: se reintenta en la próxima apertura */
+  }
   await state.store.purge();
   await state.store.recompute();
   await load();

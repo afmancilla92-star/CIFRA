@@ -11,6 +11,14 @@ const MESSAGING_HOSTS = ["wa.me", "api.whatsapp.com", "whatsapp.com", "m.me", "m
 const SOCIAL_HOSTS = ["facebook.com", "fb.com", "fb.me", "instagram.com", "tiktok.com", "youtube.com", "youtu.be", "threads.net", "x.com", "twitter.com"];
 const APP_HOSTS = ["apps.apple.com", "itunes.apple.com", "play.google.com"];
 
+/** Parámetro que identifica el destino real en dominios compartidos. */
+const IDENTITY_PARAMS: Array<[string, string]> = [
+  ["api.whatsapp.com", "phone"],
+  ["whatsapp.com", "phone"],
+  ["play.google.com", "id"],
+  ["facebook.com", "id"],
+];
+
 export type LandingKind = "web" | "messaging" | "social" | "app_store";
 
 export interface Landing {
@@ -75,8 +83,16 @@ export function normalizeLanding(linkUrl: string | null | undefined, caption?: s
         const query = u.searchParams.toString();
         const url = `${u.protocol}//${u.hostname.toLowerCase()}${pathname || "/"}${query ? `?${query}` : ""}`;
         const kind = landingKind(domain);
-        // Para mensajería la ruta suele ser el número/usuario: agrupa por destino completo.
-        const key = `${domain}${pathname.toLowerCase()}`;
+        // Destinos compartidos por muchos anunciantes (WhatsApp, Google Play, perfiles):
+        // el parámetro que identifica el destino real forma parte de la clave.
+        let identity = "";
+        for (const [host, param] of IDENTITY_PARAMS) {
+          if (domain === host || domain.endsWith(`.${host}`)) {
+            const v = u.searchParams.get(param);
+            if (v) identity = `?${param}=${param === "phone" ? v.replace(/\D/g, "") : v.toLowerCase()}`;
+          }
+        }
+        const key = `${domain}${pathname.toLowerCase()}${identity}`;
         return { key, domain, url, kind, domainOnly: false };
       }
     } catch {

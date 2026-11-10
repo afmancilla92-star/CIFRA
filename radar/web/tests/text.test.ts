@@ -41,6 +41,10 @@ describe("nichos por reglas", () => {
     expect(classifyByRules({ body: "Conoce nuestras propuestas", categories: ["Real Estate"] }).niche).toBe("inmobiliaria");
   });
 
+  it("reconoce calzado en inglés y español", () => {
+    expect(classifyByRules({ body: "Comfortable slippers for every day. Pantuflas suaves" }).niche).toBe("moda");
+  });
+
   it("no inventa un nicho sin evidencia", () => {
     expect(classifyByRules({ body: "Hola" }).niche).toBeNull();
   });

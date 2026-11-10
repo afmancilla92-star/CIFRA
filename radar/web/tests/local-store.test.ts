@@ -82,3 +82,20 @@ describe("almacén local de la extensión", () => {
     store.close();
   });
 });
+
+describe("migración de datos guardados", () => {
+  it("recalcula landing y nicho de anuncios guardados con versiones anteriores", async () => {
+    const store = await LocalStore.open(new IDBFactory());
+    await store.ingestExtensionPayload({
+      ...payload,
+      nodes: [node("130000000000001", "140000000000001", "Pantuflas suaves para el frío", "https://api.whatsapp.com/send?phone=573000000001", now - 5 * day)],
+    });
+    // Simula un registro guardado con la clave antigua y sin nicho.
+    const [a] = await store.allAds();
+    await store.importFile({ format: "cifra-radar", version: 1, exportedAt: "", ads: [{ ...a!, landingKey: "api.whatsapp.com/send", niche: null, nicheSource: null }], advertisers: [], favorites: [] });
+    await store.reindex();
+    const [b] = await store.allAds();
+    expect(b).toMatchObject({ landingKey: "api.whatsapp.com/send?phone=573000000001", niche: "moda" });
+    store.close();
+  });
+});

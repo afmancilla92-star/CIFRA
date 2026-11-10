@@ -48,3 +48,17 @@ describe("token de la extensión", () => {
     else env.INGEST_TOKEN = prev.token;
   });
 });
+
+describe("destinos compartidos", () => {
+  it("no agrupa distintos números de WhatsApp ni distintas apps", () => {
+    const a = normalizeLanding("https://api.whatsapp.com/send?phone=+57 300 000 0001&text=hola");
+    const b = normalizeLanding("https://api.whatsapp.com/send?phone=573000000002");
+    expect(a?.key).toBe("api.whatsapp.com/send?phone=573000000001");
+    expect(b?.key).not.toBe(a?.key);
+    const p1 = normalizeLanding("https://play.google.com/store/apps/details?id=com.ejemplo.tienda&utm_source=fb");
+    const p2 = normalizeLanding("https://play.google.com/store/apps/details?id=com.otra.app");
+    expect(p1?.key).toBe("play.google.com/store/apps/details?id=com.ejemplo.tienda");
+    expect(p2?.key).not.toBe(p1?.key);
+    expect(normalizeLanding("https://tienda.example/oferta?id=5")?.key).toBe("tienda.example/oferta");
+  });
+});

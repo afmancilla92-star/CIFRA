@@ -176,6 +176,12 @@ var CifraCore = (() => {
   var MESSAGING_HOSTS = ["wa.me", "api.whatsapp.com", "whatsapp.com", "m.me", "messenger.com", "t.me", "telegram.me"];
   var SOCIAL_HOSTS = ["facebook.com", "fb.com", "fb.me", "instagram.com", "tiktok.com", "youtube.com", "youtu.be", "threads.net", "x.com", "twitter.com"];
   var APP_HOSTS = ["apps.apple.com", "itunes.apple.com", "play.google.com"];
+  var IDENTITY_PARAMS = [
+    ["api.whatsapp.com", "phone"],
+    ["whatsapp.com", "phone"],
+    ["play.google.com", "id"],
+    ["facebook.com", "id"]
+  ];
   function hostMatches(host, list) {
     return list.some((h) => host === h || host.endsWith(`.${h}`));
   }
@@ -221,7 +227,14 @@ var CifraCore = (() => {
           const query = u.searchParams.toString();
           const url = `${u.protocol}//${u.hostname.toLowerCase()}${pathname || "/"}${query ? `?${query}` : ""}`;
           const kind = landingKind(domain);
-          const key = `${domain}${pathname.toLowerCase()}`;
+          let identity = "";
+          for (const [host, param] of IDENTITY_PARAMS) {
+            if (domain === host || domain.endsWith(`.${host}`)) {
+              const v = u.searchParams.get(param);
+              if (v) identity = `?${param}=${param === "phone" ? v.replace(/\D/g, "") : v.toLowerCase()}`;
+            }
+          }
+          const key = `${domain}${pathname.toLowerCase()}${identity}`;
           return { key, domain, url, kind, domainOnly: false };
         }
       } catch {
@@ -483,7 +496,7 @@ var CifraCore = (() => {
     {
       id: "moda",
       label: "Moda y calzado",
-      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras"],
+      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "colecao", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "mocasines", "tacones", "shoes", "sandals", "dress", "apparel", "leggins", "pijama", "pijamas", "sudadera", "buzo", "hoodie"],
       weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "nueva coleccion", "boutique"],
       categories: ["clothing", "fashion", "shoe", "apparel", "boutique", "ropa"]
     },
@@ -1260,6 +1273,37 @@ var CifraCore = (() => {
         await done(tx);
       }
       return targets.length;
+    }
+    /**
+     * Vuelve a calcular landing page y nicho (por reglas) de los anuncios ya
+     * guardados, para aplicar mejoras de versiones nuevas sin recapturar.
+     */
+    async reindex() {
+      const ads = await this.allAds();
+      const advs = new Map((await this.allAdvertisers()).map((a) => [a.pageId, a]));
+      const tx = this.idb.transaction("ads", "readwrite");
+      for (const a of ads) {
+        const landing = normalizeLanding(a.linkUrl, a.caption);
+        const next = { ...a, landingKey: landing?.key ?? null, landingDomain: landing?.domain ?? null, linkUrl: landing?.url ?? null };
+        if (a.nicheSource !== "ai" && a.nicheSource !== "manual") {
+          const r = classifyByRules({
+            body: a.body,
+            title: a.title,
+            linkDescription: a.linkDescription,
+            caption: landing?.domain ?? a.caption,
+            pageName: a.pageName,
+            categories: advs.get(a.pageId)?.categories
+          });
+          next.niche = r.niche;
+          next.nicheConfidence = r.confidence;
+          next.nicheSource = r.niche ? "rules" : null;
+          next.nicheTerms = r.terms;
+        }
+        tx.objectStore("ads").put(next);
+      }
+      await done(tx);
+      await this.recompute();
+      return ads.length;
     }
     /** Retención: borra anuncios no favoritos que no se ven hace más de `days` días. */
     async purge(days = RETENTION_DAYS, now = /* @__PURE__ */ new Date()) {

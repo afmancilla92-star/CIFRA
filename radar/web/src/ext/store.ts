@@ -4,7 +4,9 @@
  * que la plataforma web.
  */
 import { computeAdvertiserStats } from "../lib/advertiser-stats";
+import { normalizeLanding } from "../lib/landing";
 import { mergeAd, mergeAdvertiser, prepareBatch, type AdRecord, type AdvertiserRecord } from "../lib/merge";
+import { classifyByRules } from "../lib/niche/rules";
 import { mapDomCard, mapLibraryNode, type DomCard } from "../lib/sources/library-page";
 import { mapArchivedAd, type MetaArchivedAd } from "../lib/sources/meta-api";
 import type { RawAd, SourceKind } from "../lib/types";
@@ -223,6 +225,38 @@ export class LocalStore {
       await done(tx);
     }
     return targets.length;
+  }
+
+  /**
+   * Vuelve a calcular landing page y nicho (por reglas) de los anuncios ya
+   * guardados, para aplicar mejoras de versiones nuevas sin recapturar.
+   */
+  async reindex() {
+    const ads = await this.allAds();
+    const advs = new Map((await this.allAdvertisers()).map((a) => [a.pageId, a]));
+    const tx = this.idb.transaction("ads", "readwrite");
+    for (const a of ads) {
+      const landing = normalizeLanding(a.linkUrl, a.caption);
+      const next: AdRecord = { ...a, landingKey: landing?.key ?? null, landingDomain: landing?.domain ?? null, linkUrl: landing?.url ?? null };
+      if (a.nicheSource !== "ai" && a.nicheSource !== "manual") {
+        const r = classifyByRules({
+          body: a.body,
+          title: a.title,
+          linkDescription: a.linkDescription,
+          caption: landing?.domain ?? a.caption,
+          pageName: a.pageName,
+          categories: advs.get(a.pageId)?.categories,
+        });
+        next.niche = r.niche;
+        next.nicheConfidence = r.confidence;
+        next.nicheSource = r.niche ? "rules" : null;
+        next.nicheTerms = r.terms;
+      }
+      tx.objectStore("ads").put(next);
+    }
+    await done(tx);
+    await this.recompute();
+    return ads.length;
   }
 
   /** Retención: borra anuncios no favoritos que no se ven hace más de `days` días. */
