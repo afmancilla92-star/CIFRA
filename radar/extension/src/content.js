@@ -4,7 +4,8 @@
  * 1. Reúne los anuncios que la página ya cargó (datos incrustados en el HTML
  *    y respuestas que observa page-hook.js mientras tú navegas o haces scroll).
  * 2. Muestra un panel con el número de anuncios detectados.
- * 3. Solo cuando pulsas "Enviar" los manda a tu plataforma (vía background.js).
+ * 3. Solo cuando pulsas "Guardar" los guarda en tu Chrome (y en tu plataforma,
+ *    si la activaste) vía background.js.
  *
  * No hace scroll, no pagina, no hace clics ni peticiones a Meta por su cuenta.
  */
@@ -124,7 +125,7 @@
   }
 
   async function send({ all = false } = {}) {
-    if (sending) return { ok: false, error: "Ya hay un envío en curso." };
+    if (sending) return { ok: false, error: "Ya se está guardando." };
     sending = true;
     render();
     try {
@@ -150,7 +151,7 @@
         };
         const res = await chrome.runtime.sendMessage({ type: "radar:send", payload });
         if (!res || !res.ok) {
-          lastMessage = (res && res.error) || "No se pudo enviar. Revisa la configuración de la extensión.";
+          lastMessage = (res && res.error) || "No se pudo guardar. Recarga la página e inténtalo de nuevo.";
           console.warn(`[Cifra Radar] ${lastMessage}`);
           return { ok: false, error: lastMessage };
         }
@@ -158,8 +159,12 @@
         totals.updated += res.updated || 0;
         totals.skipped += res.skipped || 0;
         for (const [id] of chunk) sent.add(id);
+        if (res.platform) totals.platform = res.platform;
       }
-      lastMessage = `Enviado: ${totals.created} nuevos, ${totals.updated} actualizados${totals.skipped ? `, ${totals.skipped} omitidos` : ""}.`;
+      lastMessage = `Guardado: ${totals.created} nuevos, ${totals.updated} actualizados${totals.skipped ? `, ${totals.skipped} omitidos` : ""}.`;
+      if (totals.platform) {
+        lastMessage += totals.platform.ok ? " También se envió a tu plataforma." : ` No se pudo enviar a la plataforma: ${totals.platform.error}`;
+      }
       return { ok: true, ...totals };
     } catch (err) {
       lastMessage = `Error: ${err && err.message ? err.message : err}`;
@@ -178,7 +183,7 @@
     if (host) return;
     host = document.createElement("div");
     host.id = "cifra-radar-panel";
-    host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483646;";
+    host.style.cssText = "position:fixed;right:16px;bottom:88px;z-index:2147483646;";
     shadow = host.attachShadow({ mode: "closed" });
     shadow.innerHTML = `
       <style>
@@ -191,6 +196,7 @@
         button{font:inherit;border:0;border-radius:10px;padding:8px 10px;cursor:pointer}
         .send{background:#3fa295;color:#06221f;font-weight:700;width:100%;margin-top:10px}
         .send:disabled{opacity:.55;cursor:default}
+        .open{background:transparent;color:#cfe9e5;border:1px solid #2b333d;width:100%;margin-top:8px}
         .x{background:transparent;color:#9aa3ad;padding:2px 6px}
         .msg{margin-top:8px;font-size:12px;color:#c9d1d9}
         .mini{background:#10151b;color:#f1f3f5;border:1px solid #2b333d;border-radius:999px;padding:8px 12px;font:600 12px system-ui,sans-serif;cursor:pointer}
@@ -199,11 +205,13 @@
         <div class="row"><span class="brand"><span class="dot"></span>Cifra Radar</span><button class="x" title="Minimizar">–</button></div>
         <div class="count">0</div>
         <div class="muted pending"></div>
-        <button class="send">Enviar a Cifra Radar</button>
+        <button class="send">Guardar en Cifra Radar</button>
+        <button class="open">Abrir mi radar</button>
         <div class="msg"></div>
       </div>
       <button class="mini" hidden>Cifra Radar · <span class="n">0</span></button>`;
     shadow.querySelector(".send").addEventListener("click", () => send());
+    shadow.querySelector(".open").addEventListener("click", () => chrome.runtime.sendMessage({ type: "radar:openApp" }));
     shadow.querySelector(".x").addEventListener("click", () => setCollapsed(true));
     shadow.querySelector(".mini").addEventListener("click", () => setCollapsed(false));
     document.documentElement.appendChild(host);
@@ -223,11 +231,11 @@
     const p = pending().length;
     shadow.querySelector(".count").textContent = `${total} ${total === 1 ? "anuncio detectado" : "anuncios detectados"}`;
     shadow.querySelector(".pending").textContent = total
-      ? `${p} sin enviar en esta vista`
+      ? (p ? `${p} sin guardar en esta vista` : "Todo guardado. Desplázate para cargar más.")
       : "Busca en la Biblioteca o desplázate: los anuncios que cargues aparecerán aquí.";
     const btn = shadow.querySelector(".send");
     btn.disabled = sending;
-    btn.textContent = sending ? "Enviando…" : p ? `Enviar ${p} a Cifra Radar` : "Enviar a Cifra Radar";
+    btn.textContent = sending ? "Guardando…" : p ? `Guardar ${p} en Cifra Radar` : "Guardar en Cifra Radar";
     shadow.querySelector(".msg").textContent = lastMessage;
     shadow.querySelector(".n").textContent = String(p);
   }

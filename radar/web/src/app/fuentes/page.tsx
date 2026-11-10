@@ -116,7 +116,10 @@ export default async function SourcesPage() {
             En Chrome abre <span className="font-mono">chrome://extensions</span>, activa el «Modo desarrollador» y usa «Cargar descomprimida» con la carpeta{" "}
             <span className="font-mono">radar/extension</span> del repositorio.
           </li>
-          <li>Haz clic en el ícono de Cifra Radar → «Conexión con la plataforma» y pega la URL y el token de abajo.</li>
+          <li>
+            Haz clic en el ícono de Cifra Radar → «Plataforma web (opcional)», marca «Enviar también a mi plataforma» y pega la URL y el
+            token de abajo. Sin esto, la extensión igual guarda los anuncios en su propio explorador dentro de Chrome.
+          </li>
           <li>
             Abre la{" "}
             <a className="text-accent hover:underline" href="https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&media_type=all" target="_blank" rel="noopener noreferrer">
@@ -124,7 +127,7 @@ export default async function SourcesPage() {
             </a>
             , busca por palabra clave, país o anunciante y desplázate para cargar resultados.
           </li>
-          <li>Pulsa «Enviar a Cifra Radar» en el panel flotante. Los anuncios aparecen en Explorar al instante.</li>
+          <li>Pulsa «Guardar en Cifra Radar» en el panel flotante. Los anuncios aparecen en Explorar al instante.</li>
         </ol>
         <div className="grid gap-3 md:grid-cols-2">
           <div>

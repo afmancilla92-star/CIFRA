@@ -1,9 +1,20 @@
 /*
- * Cifra Radar — service worker. Única pieza que habla con tu plataforma.
- * Guarda la URL y el token en chrome.storage.sync (nunca en la página).
+ * Cifra Radar — service worker.
+ *
+ * Modo local (por defecto): guarda las capturas en IndexedDB, dentro de este
+ * Chrome, sin servidor ni configuración. El explorador está en app.html.
+ * Plataforma web (opcional): si la activas en el popup, cada captura también
+ * se envía a tu plataforma con su URL y token.
  */
-// Por defecto apunta a la plataforma local (npm run dev), que acepta este token en desarrollo.
-const DEFAULTS = { apiBase: "http://localhost:3000", token: "radar-local" };
+importScripts("core.js");
+
+const DEFAULTS = { apiBase: "", token: "", platformEnabled: false };
+let storePromise = null;
+
+function store() {
+  if (!storePromise) storePromise = CifraCore.LocalStore.open();
+  return storePromise;
+}
 
 function normalizeBase(raw) {
   try {
@@ -18,12 +29,12 @@ function normalizeBase(raw) {
 
 async function settings() {
   const s = await chrome.storage.sync.get(DEFAULTS);
-  return { apiBase: normalizeBase(s.apiBase), token: String(s.token || "").trim() };
+  return { apiBase: normalizeBase(s.apiBase), token: String(s.token || "").trim(), platformEnabled: Boolean(s.platformEnabled) };
 }
 
-async function call(method, body) {
+async function callPlatform(method, body) {
   const { apiBase, token } = await settings();
-  if (!apiBase || !token) return { ok: false, error: "Configura la URL de la plataforma y el token en el ícono de la extensión." };
+  if (!apiBase || !token) return { ok: false, error: "Escribe la URL de la plataforma y el token en el ícono de la extensión." };
   let res;
   try {
     res = await fetch(`${apiBase}/api/ingest/extension`, {
@@ -39,17 +50,63 @@ async function call(method, body) {
   return data;
 }
 
+async function saveCapture(payload) {
+  const s = await settings();
+  let local;
+  try {
+    local = await (await store()).ingestExtensionPayload(payload);
+  } catch (err) {
+    return { ok: false, error: `No se pudo guardar: ${err && err.message ? err.message : err}` };
+  }
+  const result = { ok: true, created: local.created, updated: local.updated, skipped: local.skipped };
+  if (s.platformEnabled) {
+    const remote = await callPlatform("POST", payload);
+    result.platform = remote.ok ? { ok: true, created: remote.created, updated: remote.updated } : { ok: false, error: remote.error };
+  }
+  // Avisa al explorador (si está abierto) para que se actualice solo.
+  chrome.runtime.sendMessage({ type: "radar:updated" }).catch(() => {});
+  return result;
+}
+
+async function openApp() {
+  const url = chrome.runtime.getURL("app.html");
+  const [existing] = await chrome.tabs.query({ url }).catch(() => []);
+  if (existing) {
+    await chrome.tabs.update(existing.id, { active: true });
+    await chrome.windows.update(existing.windowId, { focused: true }).catch(() => {});
+  } else {
+    await chrome.tabs.create({ url });
+  }
+}
+
+async function counts() {
+  const ads = await (await store()).allAds();
+  return { total: ads.length, active: ads.filter((a) => a.isActive).length };
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!msg || typeof msg.type !== "string") return;
-  // Solo se aceptan envíos desde la Biblioteca de Anuncios o desde el popup de la extensión.
-  const fromLibrary = sender.tab && /^https:\/\/www\.facebook\.com\/ads\/library/.test(sender.tab.url || sender.url || "");
+  const fromLibrary = /^https:\/\/www\.facebook\.com\/ads\/library/.test((sender.tab && sender.tab.url) || sender.url || "");
   const fromExtension = sender.id === chrome.runtime.id && !sender.tab;
   if (msg.type === "radar:send" && fromLibrary) {
-    call("POST", msg.payload).then(reply);
+    saveCapture(msg.payload).then(reply);
+    return true;
+  }
+  if (msg.type === "radar:openApp" && (fromLibrary || fromExtension)) {
+    openApp().then(() => reply({ ok: true }));
+    return true;
+  }
+  if (msg.type === "radar:counts" && fromExtension) {
+    counts().then(reply);
     return true;
   }
   if (msg.type === "radar:ping" && fromExtension) {
-    call("GET").then(reply);
+    callPlatform("GET").then(reply);
     return true;
   }
+});
+
+// Al instalar por primera vez, abre el explorador con las instrucciones.
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") openApp();
 });

@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 /** Minúsculas, sin tildes, sin emojis ni signos; espacios colapsados. */
 export function normalizeText(input: string | null | undefined): string {
   if (!input) return "";
@@ -20,7 +18,19 @@ export function normalizeText(input: string | null | undefined): string {
 export function messageHash(body: string | null, title: string | null): string | null {
   const text = normalizeText(`${body ?? ""} ${title ?? ""}`);
   if (text.length < 12) return null;
-  return createHash("sha1").update(text).digest("hex").slice(0, 16);
+  return fnv1a64(text);
+}
+
+/** FNV-1a de 64 bits: determinista y sin dependencias (funciona en Node y en el navegador). */
+export function fnv1a64(input: string): string {
+  let h = BigInt("0xcbf29ce484222325");
+  const prime = BigInt("0x100000001b3");
+  const mask = BigInt("0xffffffffffffffff");
+  for (const byte of new TextEncoder().encode(input)) {
+    h ^= BigInt(byte);
+    h = (h * prime) & mask;
+  }
+  return h.toString(16).padStart(16, "0");
 }
 
 const OFFER_PATTERNS: Array<[string, RegExp]> = [

@@ -11,20 +11,25 @@
       <strong>Cifra Radar</strong>
     </header>
 
+    <button id="open-app" class="primary">Abrir mi radar</button>
+    <p id="counts" class="muted center"></p>
+
     <section id="tab">
-      <p class="muted" id="tab-status">Abre la Biblioteca de Anuncios de Meta para capturar anuncios.</p>
-      <button id="send" class="primary" hidden>Enviar anuncios detectados</button>
+      <p class="muted" id="tab-status">Abre la Biblioteca de Anuncios de Meta, busca algo y guarda los anuncios que veas.</p>
+      <button id="send" class="primary" hidden>Guardar anuncios detectados</button>
       <button id="open-library" class="ghost">Abrir la Biblioteca de Anuncios</button>
       <p id="send-result" class="msg"></p>
     </section>
 
     <details id="config">
-      <summary>Conexión con la plataforma</summary>
+      <summary>Plataforma web (opcional)</summary>
+      <p class="muted">No hace falta: todo se guarda en este Chrome. Actívala solo si instalaste la plataforma Cifra Radar.</p>
+      <label class="check"><input id="platformEnabled" type="checkbox" /> Enviar también a mi plataforma</label>
       <label>URL de la plataforma
-        <input id="apiBase" type="url" placeholder="https://tu-radar.vercel.app" autocomplete="off" />
+        <input id="apiBase" type="url" placeholder="http://localhost:3000" autocomplete="off" />
       </label>
       <label>Token de la extensión (INGEST_TOKEN)
-        <input id="token" type="password" autocomplete="off" />
+        <input id="token" type="password" placeholder="radar-local" autocomplete="off" />
       </label>
       <div class="row">
         <button id="save" class="primary">Guardar</button>
@@ -34,8 +39,7 @@
     </details>
 
     <footer class="muted">
-      Solo se envía lo que ves cuando pulsas «Enviar». La extensión no navega, no hace scroll ni consultas por su cuenta.
-      <a id="open-app" href="#">Abrir plataforma</a>
+      Solo se guarda lo que ves cuando pulsas «Guardar». La extensión no navega, no hace scroll ni consultas por su cuenta.
     </footer>
     <script src="popup.js"></script>
   </body>

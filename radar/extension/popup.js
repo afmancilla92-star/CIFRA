@@ -1,5 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const LIBRARY_URL = "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&media_type=all";
+const DEFAULTS = { apiBase: "", token: "", platformEnabled: false };
 
 function show(el, text, ok) {
   el.textContent = text;
@@ -11,12 +12,20 @@ async function activeTab() {
   return tab;
 }
 
+async function loadCounts() {
+  try {
+    const c = await chrome.runtime.sendMessage({ type: "radar:counts" });
+    $("counts").textContent = c && c.total ? `${c.total} anuncios guardados (${c.active} activos)` : "Todavía no guardaste anuncios.";
+  } catch (_) {
+    $("counts").textContent = "";
+  }
+}
+
 async function loadSettings() {
-  const s = await chrome.storage.sync.get({ apiBase: "http://localhost:3000", token: "radar-local" });
+  const s = await chrome.storage.sync.get(DEFAULTS);
   $("apiBase").value = s.apiBase;
   $("token").value = s.token;
-  if (!s.apiBase || !s.token) $("config").open = true;
-  $("open-app").hidden = !s.apiBase;
+  $("platformEnabled").checked = Boolean(s.platformEnabled);
 }
 
 async function refreshTab() {
@@ -32,33 +41,40 @@ async function refreshTab() {
     strong.textContent = `${st.detected} anuncios detectados`;
     const p = document.createElement("span");
     p.className = "muted";
-    p.textContent = `${st.pending} sin enviar${st.query.country ? ` · país: ${st.query.country}` : ""}${st.query.q ? ` · «${st.query.q}»` : ""}`;
+    p.textContent = `${st.pending} sin guardar${st.query.country ? ` · país: ${st.query.country}` : ""}${st.query.q ? ` · «${st.query.q}»` : ""}`;
     $("tab-status").append(strong, p);
     $("send").hidden = false;
     $("send").disabled = st.sending;
+    $("send").textContent = st.pending ? `Guardar ${st.pending} anuncios` : "Guardar anuncios detectados";
     if (st.lastMessage) show($("send-result"), st.lastMessage);
   } catch (_) {
     $("tab-status").textContent = "Recarga la página de la Biblioteca para activar la captura.";
   }
 }
 
+$("open-app").addEventListener("click", () => chrome.runtime.sendMessage({ type: "radar:openApp" }).then(() => window.close()));
+
 $("save").addEventListener("click", async () => {
   const apiBase = $("apiBase").value.trim().replace(/\/+$/, "");
   const token = $("token").value.trim();
-  try {
-    const u = new URL(apiBase);
-    const local = u.hostname === "localhost" || u.hostname === "127.0.0.1";
-    if (u.protocol !== "https:" && !(local && u.protocol === "http:")) throw new Error();
-  } catch (_) {
-    return show($("config-result"), "La URL debe empezar con https:// (o http://localhost).", false);
+  const platformEnabled = $("platformEnabled").checked;
+  if (platformEnabled) {
+    try {
+      const u = new URL(apiBase);
+      const local = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+      if (u.protocol !== "https:" && !(local && u.protocol === "http:")) throw new Error();
+    } catch (_) {
+      return show($("config-result"), "La URL debe empezar con https:// (o http://localhost).", false);
+    }
+    if (!token) return show($("config-result"), "Escribe el token de la plataforma.", false);
   }
-  await chrome.storage.sync.set({ apiBase, token });
-  $("open-app").hidden = false;
-  show($("config-result"), "Guardado.", true);
+  await chrome.storage.sync.set({ apiBase, token, platformEnabled });
+  show($("config-result"), platformEnabled ? "Guardado. Las capturas también se enviarán a tu plataforma." : "Guardado. Solo se guarda en este Chrome.", true);
 });
 
 $("test").addEventListener("click", async () => {
   show($("config-result"), "Probando…");
+  await chrome.storage.sync.set({ apiBase: $("apiBase").value.trim(), token: $("token").value.trim() });
   const res = await chrome.runtime.sendMessage({ type: "radar:ping" });
   show($("config-result"), res && res.ok ? "Conexión correcta con la plataforma." : (res && res.error) || "Sin respuesta.", Boolean(res && res.ok));
 });
@@ -66,21 +82,18 @@ $("test").addEventListener("click", async () => {
 $("send").addEventListener("click", async () => {
   const tab = await activeTab();
   $("send").disabled = true;
-  show($("send-result"), "Enviando…");
+  show($("send-result"), "Guardando…");
   try {
     const res = await chrome.tabs.sendMessage(tab.id, { type: "radar:sendNow" });
     show($("send-result"), res && res.ok ? `Listo: ${res.created || 0} nuevos, ${res.updated || 0} actualizados.` : (res && res.error) || "Error", Boolean(res && res.ok));
   } finally {
     refreshTab();
+    loadCounts();
   }
 });
 
 $("open-library").addEventListener("click", () => chrome.tabs.create({ url: LIBRARY_URL }));
-$("open-app").addEventListener("click", async (e) => {
-  e.preventDefault();
-  const { apiBase } = await chrome.storage.sync.get({ apiBase: "" });
-  if (apiBase) chrome.tabs.create({ url: apiBase });
-});
 
+loadCounts();
 loadSettings();
 refreshTab();

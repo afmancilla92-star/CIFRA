@@ -8,9 +8,23 @@ agrupación por landing page, ranking de anunciantes, favoritos y una puntuació
 
 ```
 radar/
-├── web/         Plataforma (Next.js 14 + TypeScript + Tailwind + libSQL/SQLite)
-└── extension/   Extensión de Chrome (Manifest V3): puente con la Biblioteca de Anuncios
+├── extension/   Extensión de Chrome (Manifest V3): captura en la Biblioteca de Anuncios + explorador local
+└── web/         Plataforma web opcional (Next.js 14 + TypeScript + Tailwind + libSQL/SQLite)
 ```
+
+## La forma más fácil: solo la extensión (sin servidor ni terminal)
+
+1. Descarga y descomprime la carpeta `radar/extension` (o el zip `cifra-radar-extension.zip`).
+2. En Chrome abre `chrome://extensions`, activa **Modo desarrollador**, pulsa **Cargar descomprimida** y elige esa carpeta
+   (la que contiene `manifest.json`). Se abre sola la pestaña **Cifra Radar** con las instrucciones.
+3. Abre la [Biblioteca de Anuncios](https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&media_type=all),
+   busca (por ejemplo «zapatillas» en Colombia), desplázate y pulsa **«Guardar en Cifra Radar»** en el panel de abajo a la derecha.
+4. Pulsa **«Abrir mi radar»**: anuncios con filtros, orden por días activos, puntuación explicada, anunciantes, landing pages,
+   favoritos y respaldo en JSON.
+
+Todo queda guardado **solo en ese Chrome** (IndexedDB), con la misma lógica de fusión y puntuación que la plataforma web. La plataforma
+web es opcional: sirve para la sincronización automática con la API oficial, para compartir con un equipo o para tener los datos en un
+servidor. Para usarla también, en el ícono de la extensión → «Plataforma web (opcional)» marca «Enviar también a mi plataforma».
 
 ## Cómo llegan los anuncios
 
@@ -92,8 +106,8 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-En local no hace falta configurar nada: sin `INGEST_TOKEN`, la plataforma acepta el token `radar-local`, que es el que la
-extensión usa por defecto junto con `http://localhost:3000`. Para producción copia `.env.example` y define las variables.
+En local (`npm run dev`) no hace falta configurar nada: sin `INGEST_TOKEN`, la plataforma acepta el token `radar-local`.
+Para producción copia `.env.example` y define las variables.
 
 Variables de entorno (ver `web/.env.example`):
 
@@ -107,18 +121,21 @@ Variables de entorno (ver `web/.env.example`):
 | `RETENTION_DAYS` | Retención de anuncios no favoritos |
 | `ANTHROPIC_API_KEY`, `AI_CLASSIFY_MODEL` | Clasificación de nichos con IA (opcional) |
 
-### Extensión de Chrome
+### Extensión de Chrome conectada a la plataforma
 
 1. `chrome://extensions` → activa **Modo desarrollador** → **Cargar descomprimida** → carpeta `radar/extension`.
-2. En local ya viene conectada a `http://localhost:3000`. Para una plataforma publicada: ícono de Cifra Radar →
-   «Conexión con la plataforma» → URL y `INGEST_TOKEN` → «Probar conexión».
+2. Ícono de Cifra Radar → «Plataforma web (opcional)» → marca «Enviar también a mi plataforma», escribe la URL
+   (`http://localhost:3000` en local) y el `INGEST_TOKEN` (`radar-local` en local) → «Probar conexión».
 3. Abre la [Biblioteca de Anuncios](https://www.facebook.com/ads/library/), busca (palabra clave, país, anunciante) y desplázate.
-4. Pulsa **«Enviar a Cifra Radar»** en el panel flotante (o desde el ícono). Los anuncios aparecen al instante en Explorar.
+4. Pulsa **«Guardar en Cifra Radar»** en el panel flotante (o desde el ícono). Se guarda en el explorador local y en la plataforma.
 
 Cómo funciona: `page-hook.js` (contexto de la página) observa las respuestas que la Biblioteca ya descargó y reenvía las que contienen
 anuncios; `collector.js` encuentra los objetos con `ad_archive_id` y conserva solo los campos necesarios; `content.js` muestra el panel y,
-al pulsar «Enviar», manda los anuncios a `background.js`, que es el único que habla con tu plataforma. Si algún anuncio visible no llegó
-como dato estructurado, se lee el texto de su tarjeta como respaldo y se marca como **parcial** (nunca pisa datos completos).
+al pulsar «Guardar», manda los anuncios a `background.js`, que los guarda en IndexedDB (`core.js`) y, si lo activaste, los envía a tu
+plataforma. `app.html` es el explorador local. Si algún anuncio visible no llegó como dato estructurado, se lee el texto de su tarjeta
+como respaldo y se marca como **parcial** (nunca pisa datos completos).
+
+`core.js` y `app.js` se generan desde `web/src/ext` con `npm run build:extension` (una prueba avisa si quedaron desactualizados).
 
 ### Sincronización con la API oficial
 
@@ -147,8 +164,9 @@ npm run build
 ```
 
 Cubren normalización de landings, idioma, nichos, fechas, puntuación, el conector de la API (paginación, campos opcionales, límites,
-errores de token sin filtrarlo), el mapeo de la Biblioteca, el colector de la extensión (el mismo archivo que carga Chrome) y el pipeline
-completo de ingesta, búsqueda, favoritos y retención.
+errores de token sin filtrarlo), el mapeo de la Biblioteca, el colector de la extensión (el mismo archivo que carga Chrome), el pipeline
+completo de ingesta, búsqueda, favoritos y retención, el almacén local de la extensión (IndexedDB) y que los archivos compilados de la
+extensión estén al día.
 
 ## Estructura de `web/src`
 
@@ -162,9 +180,12 @@ lib/
   db/                esquema (con FTS5) y cliente libSQL
   sources/           meta-api.ts (API oficial), library-page.ts (datos de la Biblioteca), países
   niche/             catálogo, reglas e IA opcional
-  ingest.ts          normalización, fusión entre fuentes y deduplicación
-  stats.ts           agregados por anunciante, puntuación y retención
+  merge.ts           fusión entre fuentes (compartida con la extensión)
+  advertiser-stats.ts agregados por anunciante y puntuación (compartida con la extensión)
+  ingest.ts          ingesta en SQLite
+  stats.ts           recálculo y retención en SQLite
   scoring.ts         puntuación orientativa con explicación por señal
   landing.ts         normalización y agrupación de destinos
   queries.ts         búsqueda, filtros, orden, anunciantes, landings, favoritos
+ext/                 código de la extensión: almacén IndexedDB (store.ts) y explorador local (app.ts)
 ```

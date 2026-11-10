@@ -15,3 +15,7 @@ button { font:inherit; border-radius:9px; padding:8px 10px; cursor:pointer; widt
 .ok { color:#1fa971; } .err { color:#d9534f; }
 footer a { color:var(--accent); display:inline-block; margin-top:6px; }
 strong.count { font-size:20px; display:block; }
+.center { text-align: center; margin: 6px 0 10px; }
+.check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 13px; }
+.check input { width: auto; margin: 0; }
+#open-app { margin: 0; padding: 11px; font-size: 14px; }

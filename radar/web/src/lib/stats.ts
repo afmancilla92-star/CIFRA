@@ -1,27 +1,7 @@
 import type { InStatement } from "@libsql/client";
+import { computeAdvertiserStats, type StatsInput } from "./advertiser-stats";
 import { db, json } from "./db/client";
-import { daysActive, isoWeekKey } from "./dates";
-import { landingKind } from "./landing";
-import { computeScore } from "./scoring";
 import type { MediaItem } from "./types";
-
-interface AdRow {
-  id: string;
-  is_active: number;
-  start_date: string | null;
-  stop_date: string | null;
-  last_seen_at: string;
-  collation_count: number | null;
-  message_hash: string | null;
-  offers: string;
-  landing_key: string | null;
-  landing_domain: string | null;
-  link_url: string | null;
-  format: string;
-  media: string;
-  niche: string | null;
-  is_manual: number;
-}
 
 /**
  * Recalcula los agregados por anunciante y la puntuación de cada uno de sus
@@ -34,75 +14,39 @@ export async function recomputeForPages(pageIds: string[], now = new Date()) {
     const rows = (
       await client.execute({
         sql: `SELECT id, is_active, start_date, stop_date, last_seen_at, collation_count, message_hash, offers,
-                     landing_key, landing_domain, link_url, format, media, niche, is_manual
+                     landing_key, landing_domain, link_url, format, media, niche
               FROM ads WHERE page_id = ?`,
         args: [pageId],
       })
-    ).rows as unknown as AdRow[];
+    ).rows as unknown as Array<Record<string, unknown>>;
     if (!rows.length) {
       await client.execute({ sql: "DELETE FROM advertisers WHERE page_id = ?", args: [pageId] });
       continue;
     }
-
-    const active = rows.filter((r) => r.is_active === 1);
-    const hashCounts = new Map<string, number>();
-    const offerCounts = new Map<string, number>();
-    const groups = new Map<string, AdRow[]>();
-    for (const r of rows) {
-      if (r.message_hash) hashCounts.set(r.message_hash, (hashCounts.get(r.message_hash) ?? 0) + 1);
-      for (const o of json<string[]>(r.offers, [])) offerCounts.set(o, (offerCounts.get(o) ?? 0) + 1);
-      const g = r.landing_key ?? "__sin_destino__";
-      groups.set(g, [...(groups.get(g) ?? []), r]);
-    }
-
-    const groupStats = new Map<string, { creatives: number; formats: number; weeks: number }>();
-    for (const [key, list] of Array.from(groups.entries())) {
-      const creatives = new Set(
-        list.map((r) => r.message_hash ?? json<MediaItem[]>(r.media, [])[0]?.url ?? r.id),
-      );
-      const formats = new Set(list.map((r) => r.format).filter((f) => f !== "unknown"));
-      const weeks = new Set(list.map((r) => (r.start_date ? isoWeekKey(r.start_date) : null)).filter(Boolean));
-      groupStats.set(key, { creatives: creatives.size, formats: Math.max(1, formats.size), weeks: weeks.size });
-    }
-
+    const inputs: StatsInput[] = rows.map((r) => ({
+      id: String(r.id),
+      isActive: Number(r.is_active) === 1,
+      startDate: (r.start_date as string) ?? null,
+      stopDate: (r.stop_date as string) ?? null,
+      lastSeenAt: String(r.last_seen_at),
+      collationCount: r.collation_count === null || r.collation_count === undefined ? null : Number(r.collation_count),
+      messageHash: (r.message_hash as string) ?? null,
+      offers: json<string[]>(r.offers, []),
+      landingKey: (r.landing_key as string) ?? null,
+      landingDomain: (r.landing_domain as string) ?? null,
+      linkUrl: (r.link_url as string) ?? null,
+      format: String(r.format),
+      media: json<MediaItem[]>(r.media, []),
+      niche: (r.niche as string) ?? null,
+    }));
+    const stats = computeAdvertiserStats(inputs, now);
     const statements: InStatement[] = [];
-    for (const r of rows) {
-      const offers = json<string[]>(r.offers, []);
-      const offerRepeat = offers.length ? Math.max(...offers.map((o) => (offerCounts.get(o) ?? 1) - 1)) : 0;
-      const g = groupStats.get(r.landing_key ?? "__sin_destino__")!;
-      const { score, signals } = computeScore({
-        daysActive: daysActive(r.start_date, {
-          isActive: r.is_active === 1,
-          stopDate: r.stop_date,
-          lastSeenAt: r.last_seen_at,
-          now,
-        }),
-        isActive: r.is_active === 1,
-        collationCount: r.collation_count,
-        sameMessageCount: r.message_hash ? (hashCounts.get(r.message_hash) ?? 1) - 1 : 0,
-        offers,
-        offerRepeatCount: offerRepeat,
-        advertiserActiveAds: active.length,
-        distinctCreatives: r.landing_key ? g.creatives : 1,
-        distinctFormats: r.landing_key ? g.formats : 1,
-        landingKind: r.landing_domain ? landingKind(r.landing_domain) : null,
-        landingDomainOnly: !r.link_url,
-        launchWeeks: r.landing_key ? g.weeks : r.start_date ? 1 : 0,
-      });
-      statements.push({
-        sql: "UPDATE ads SET score = ?, score_breakdown = ? WHERE id = ?",
-        args: [score, JSON.stringify(signals), r.id],
-      });
+    for (const [id, { score, signals }] of Array.from(stats.perAd.entries())) {
+      statements.push({ sql: "UPDATE ads SET score = ?, score_breakdown = ? WHERE id = ?", args: [score, JSON.stringify(signals), id] });
     }
-
-    const nicheCounts = new Map<string, number>();
-    for (const r of rows) if (r.niche) nicheCounts.set(r.niche, (nicheCounts.get(r.niche) ?? 0) + 1);
-    const mainNiche = Array.from(nicheCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-    const landingCount = new Set(rows.map((r) => r.landing_key).filter(Boolean)).size;
-
     statements.push({
       sql: "UPDATE advertisers SET total_ads = ?, active_ads = ?, landing_count = ?, main_niche = ? WHERE page_id = ?",
-      args: [rows.length, active.length, landingCount, mainNiche, pageId],
+      args: [stats.totalAds, stats.activeAds, stats.landingCount, stats.mainNiche, pageId],
     });
     await client.batch(statements, "write");
   }
