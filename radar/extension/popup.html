@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Cifra Radar</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icons/icon48.png" width="24" height="24" alt="" />
+      <strong>Cifra Radar</strong>
+    </header>
+
+    <button id="open-app" class="primary">Abrir mi radar</button>
+    <p id="counts" class="muted center"></p>
+
+    <section id="tab">
+      <p class="muted" id="tab-status">Abre la Biblioteca de Anuncios de Meta, busca algo y guarda los anuncios que veas.</p>
+      <button id="send" class="primary" hidden>Guardar anuncios detectados</button>
+      <button id="open-library" class="ghost">Abrir la Biblioteca de Anuncios</button>
+      <p id="send-result" class="msg"></p>
+    </section>
+
+    <details id="config">
+      <summary>Plataforma web (opcional)</summary>
+      <p class="muted">No hace falta: todo se guarda en este Chrome. Actívala solo si instalaste la plataforma Cifra Radar.</p>
+      <label class="check"><input id="platformEnabled" type="checkbox" /> Enviar también a mi plataforma</label>
+      <label>URL de la plataforma
+        <input id="apiBase" type="url" placeholder="http://localhost:3000" autocomplete="off" />
+      </label>
+      <label>Token de la extensión (INGEST_TOKEN)
+        <input id="token" type="password" placeholder="radar-local" autocomplete="off" />
+      </label>
+      <div class="row">
+        <button id="save" class="primary">Guardar</button>
+        <button id="test" class="ghost">Probar conexión</button>
+      </div>
+      <p id="config-result" class="msg"></p>
+    </details>
+
+    <footer class="muted">
+      Solo se guarda lo que ves cuando pulsas «Guardar». La extensión no navega, no hace scroll ni consultas por su cuenta.
+    </footer>
+    <script src="popup.js"></script>
+  </body>
+</html>

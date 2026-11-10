@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Cifra Radar — Puente con la Biblioteca de Anuncios",
+  "short_name": "Cifra Radar",
+  "version": "0.5.0",
+  "description": "Descubre y guarda anuncios reales de la Biblioteca de Anuncios de Meta: busca por ti desde tu Chrome, categoriza por nicho y explora todo en tu radar local.",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Cifra Radar"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.facebook.com/ads/library*"
+      ],
+      "js": [
+        "src/page-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://*.facebook.com/ads/library*"
+      ],
+      "js": [
+        "src/collector.js",
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
