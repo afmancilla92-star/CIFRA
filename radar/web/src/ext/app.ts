@@ -1810,7 +1810,7 @@ document.addEventListener("keydown", (e) => {
 (async () => {
   state.store = await LocalStore.open();
   // Aplica mejoras de clasificación de versiones nuevas a los anuncios ya guardados.
-  const DATA_VERSION = "5";
+  const DATA_VERSION = "6";
   try {
     if (localStorage.getItem("cifra-data-version") !== DATA_VERSION) {
       await state.store.reindex();

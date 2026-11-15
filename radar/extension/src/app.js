@@ -1562,8 +1562,8 @@
       label: "Salud mental",
       description: "ansiedad, estrés, terapia, emociones, autoestima",
       seed: "ansiedad",
-      strong: ["ansiedad", "estres", "depresion", "ataques de panico", "salud mental", "psicologo", "psicologa", "psicologia", "terapia online", "burnout", "trauma", "tdah", "autoestima", "mental health", "anxiety", "therapy", "overthinking"],
-      weak: ["emociones", "emocional", "calma", "paz mental", "mente", "sanar", "bienestar emocional"],
+      strong: ["ansiedad", "estres", "depresion", "ataques de panico", "salud mental", "psicologo", "psicologa", "psicologia", "terapia online", "burnout", "trauma", "tdah", "autoestima", "mental health", "anxiety", "overthinking"],
+      weak: ["emociones", "emocional", "calma", "paz mental", "mente", "sanar", "bienestar emocional", "therapy"],
       categories: ["psychologist", "mental health", "therapist", "counselor"]
     },
     {
@@ -1571,8 +1571,8 @@
       label: "Educación académica",
       description: "colegios, universidades, tareas, exámenes, refuerzo escolar",
       seed: "universidad",
-      strong: ["universidad", "colegio", "maestria", "doctorado", "pregrado", "bachillerato", "icfes", "examen de admision", "matriculas", "inscripciones", "beca", "becas", "tareas", "refuerzo escolar", "matematicas", "lectura", "ninos aprendan", "homeschool", "student", "college"],
-      weak: ["educacion", "educacao", "education", "estudiar", "estudar", "alumnos", "escuela", "academia", "profesor", "aprendizaje", "estudiantes"],
+      strong: ["universidad", "colegio", "maestria", "doctorado", "pregrado", "bachillerato", "icfes", "examen de admision", "matriculas", "inscripciones", "beca", "becas", "refuerzo escolar", "matematicas", "ninos aprendan", "homeschool", "student", "college"],
+      weak: ["educacion", "educacao", "education", "estudiar", "estudar", "alumnos", "escuela", "academia", "profesor", "aprendizaje", "estudiantes", "lectura", "tareas"],
       categories: ["education", "school", "college", "university", "tutor", "educational"]
     },
     {
@@ -1580,8 +1580,8 @@
       label: "Cursos y formación online",
       description: "cursos, masterclass, certificaciones y formación a distancia",
       seed: "curso online",
-      strong: ["curso online", "curso", "cursos", "masterclass", "clase gratis", "aula gratuita", "certificado", "certificacion", "diplomado", "capacitacion", "formacion", "bootcamp", "webinar", "taller online", "workshop", "aprende", "aprender", "aprenda", "inscribete", "modulos", "online course", "lecciones"],
-      weak: ["clases", "online", "desde casa", "a tu ritmo", "acceso de por vida", "comunidad"],
+      strong: ["curso online", "curso", "cursos", "masterclass", "clase gratis", "aula gratuita", "certificacion", "diplomado", "capacitacion", "formacion", "bootcamp", "webinar", "taller online", "workshop", "aprende", "aprender", "aprenda", "inscribete", "online course", "lecciones"],
+      weak: ["clases", "online", "desde casa", "a tu ritmo", "acceso de por vida", "comunidad", "certificado", "modulos"],
       categories: ["education website", "online course", "course"]
     },
     {
@@ -1589,8 +1589,8 @@
       label: "Fitness y entrenamiento",
       description: "gimnasio, rutinas, ejercicio en casa, deporte",
       seed: "rutina de ejercicios",
-      strong: ["gimnasio", "gym", "entrenamiento", "treino", "workout", "rutina de ejercicios", "ejercicios en casa", "musculo", "masa muscular", "pilates", "yoga", "crossfit", "running", "abdominales", "gluteos", "calistenia", "personal trainer", "entrenador personal", "quemar grasa", "fat burning"],
-      weak: ["fitness", "deporte", "esporte", "sport", "ejercicio", "exercicio", "cardio", "atleta", "tonificar", "fuerza"],
+      strong: ["gimnasio", "gym", "entrenamiento", "treino", "workout", "rutina de ejercicios", "ejercicios en casa", "musculo", "masa muscular", "pilates", "yoga", "crossfit", "abdominales", "gluteos", "calistenia", "personal trainer", "entrenador personal", "quemar grasa", "fat burning"],
+      weak: ["fitness", "deporte", "esporte", "sport", "ejercicio", "exercicio", "cardio", "atleta", "tonificar", "fuerza", "running", "deportivo", "deportiva"],
       categories: ["gym", "fitness", "sports", "athlete", "yoga", "personal trainer"]
     },
     {
@@ -1634,8 +1634,8 @@
       label: "Espiritualidad",
       description: "meditación, energía, tarot, astrología, manifestación",
       seed: "meditacion",
-      strong: ["espiritualidad", "espiritual", "meditacion", "meditar", "tarot", "astrologia", "horoscopo", "carta astral", "manifestar", "manifestacion", "ley de atraccion", "chakras", "energia espiritual", "sanacion", "reiki", "constelaciones", "angeles", "abundancia", "spiritual"],
-      weak: ["universo", "vibracion", "energia", "alma", "intuicion", "despertar"],
+      strong: ["espiritualidad", "espiritual", "meditacion", "meditar", "tarot", "astrologia", "horoscopo", "carta astral", "manifestar", "manifestacion", "ley de atraccion", "chakras", "energia espiritual", "sanacion", "reiki", "constelaciones", "abundancia", "spiritual"],
+      weak: ["universo", "vibracion", "energia", "alma", "intuicion", "despertar", "angeles"],
       categories: ["spiritual", "astrologist", "psychic", "religious center"]
     },
     {
@@ -1643,8 +1643,8 @@
       label: "Productividad",
       description: "organización, gestión del tiempo, agendas, planificación",
       seed: "productividad",
-      strong: ["productividad", "productivo", "gestion del tiempo", "organizacion personal", "planner", "planificador", "agenda", "notion", "to do", "procrastinacion", "enfoque", "rutina diaria", "time management", "productivity"],
-      weak: ["organizar", "organizate", "tiempo", "tareas", "planifica", "concentracion"],
+      strong: ["productividad", "productivo", "gestion del tiempo", "organizacion personal", "planner", "planificador", "notion", "to do", "procrastinacion", "rutina diaria", "time management", "productivity"],
+      weak: ["organizar", "organizate", "tiempo", "tareas", "planifica", "concentracion", "agenda", "enfoque"],
       categories: ["productivity"]
     },
     {
@@ -1652,8 +1652,8 @@
       label: "Religión",
       description: "fe, Biblia, oración, iglesia, cristianismo",
       seed: "biblia",
-      strong: ["biblia", "oracion", "orar", "jesus", "cristo", "dios", "iglesia", "fe cristiana", "devocional", "evangelio", "versiculo", "catolico", "cristiano", "cristiana", "salmo", "pastor", "bible", "prayer", "god"],
-      weak: ["fe", "bendicion", "bendiciones", "senor", "gloria", "espiritu santo"],
+      strong: ["biblia", "oracion", "orar", "jesus", "cristo", "dios", "iglesia", "fe cristiana", "devocional", "evangelio", "versiculo", "catolico", "cristiana", "salmo", "bible", "prayer", "god"],
+      weak: ["fe", "bendicion", "bendiciones", "senor", "gloria", "espiritu santo", "pastor", "cristiano"],
       categories: ["religious", "church", "religious organization", "christian"]
     },
     {
@@ -1661,8 +1661,8 @@
       label: "Belleza y estética",
       description: "skincare, maquillaje, cabello, tratamientos estéticos",
       seed: "skincare",
-      strong: ["serum", "skincare", "skin care", "crema facial", "antiarrugas", "arrugas", "manchas", "acne", "maquillaje", "maquiagem", "makeup", "cabello", "caida del cabello", "shampoo", "champu", "pestanas", "unas", "perfume", "fragancia", "depilacion", "protector solar", "rutina facial", "cosmetico", "cosmeticos", "labial", "botox", "estetica", "tratamiento facial"],
-      weak: ["belleza", "beleza", "beauty", "piel", "pele", "skin", "rostro", "glow", "hidratacion", "cuidado personal", "spa", "salon"],
+      strong: ["serum", "skincare", "skin care", "crema facial", "antiarrugas", "arrugas", "manchas", "acne", "maquillaje", "maquiagem", "makeup", "cabello", "caida del cabello", "shampoo", "champu", "pestanas", "perfume", "fragancia", "depilacion", "protector solar", "rutina facial", "cosmetico", "cosmeticos", "labial", "botox", "tratamiento facial", "unas acrilicas", "unas de gel", "unas en gel", "unas postizas", "esmalte", "manicure", "manicura", "pedicure", "medicina estetica", "centro de estetica", "clinica estetica", "tratamiento estetico"],
+      weak: ["belleza", "beleza", "beauty", "piel", "pele", "skin", "rostro", "glow", "hidratacion", "cuidado personal", "spa", "salon", "estetica"],
       categories: ["beauty", "cosmetic", "skin care", "hair salon", "barber", "spa", "perfume"]
     },
     {
@@ -1679,8 +1679,8 @@
       label: "Relaciones y citas",
       description: "pareja, conquista, reconquista, citas, sexualidad",
       seed: "pareja",
-      strong: ["pareja", "relaciones de pareja", "reconquistar", "recuperar a tu ex", "ex pareja", "citas", "conquistar", "seduccion", "enamorar", "matrimonio", "infidelidad", "sexualidad", "dating", "relationship", "soltera", "soltero"],
-      weak: ["amor", "novio", "novia", "esposo", "esposa", "corazon"],
+      strong: ["pareja", "relaciones de pareja", "reconquistar", "recuperar a tu ex", "ex pareja", "conquistar", "seduccion", "enamorar", "matrimonio", "infidelidad", "sexualidad", "relationship", "soltera", "soltero", "app de citas", "citas en linea", "online dating", "encontrar pareja", "conocer gente", "vida en pareja"],
+      weak: ["amor", "novio", "novia", "esposo", "esposa", "corazon", "citas", "dating", "romance"],
       categories: ["dating service", "relationship coach"]
     },
     {
@@ -1697,8 +1697,8 @@
       label: "Finanzas personales",
       description: "ahorro, deudas, crédito, presupuesto y préstamos",
       seed: "salir de deudas",
-      strong: ["finanzas personales", "ahorro", "ahorrar", "deudas", "salir de deudas", "presupuesto", "prestamo", "prestamos", "credito", "tarjeta de credito", "libre inversion", "educacion financiera", "libertad financiera", "cuenta digital", "billetera", "fintech", "personal finance"],
-      weak: ["finanzas", "financas", "finance", "dinero", "dinheiro", "money", "banco", "pagos", "cuotas"],
+      strong: ["finanzas personales", "deudas", "salir de deudas", "prestamo", "prestamos", "libre inversion", "educacion financiera", "libertad financiera", "cuenta digital", "fintech", "personal finance", "credito hipotecario", "credito de vivienda", "microcredito", "solicita tu credito", "cupo de credito", "cuenta de ahorros", "tasa de interes", "billetera digital", "billetera virtual", "historial crediticio", "reportado en centrales"],
+      weak: ["finanzas", "financas", "finance", "dinero", "dinheiro", "money", "banco", "credito", "ahorro", "ahorrar", "presupuesto"],
       categories: ["finance", "bank", "financial", "credit union", "financial service"]
     },
     {
@@ -1706,8 +1706,8 @@
       label: "Gastronomía y recetas",
       description: "recetas, cocina, restaurantes y comida a domicilio",
       seed: "recetas",
-      strong: ["receta", "recetas", "cocina", "cocinar", "restaurante", "delivery", "domicilio", "pizza", "hamburguesa", "sushi", "menu", "almuerzo", "cena", "postres", "reposteria", "panaderia", "pasteleria", "chef", "gourmet", "platos"],
-      weak: ["sabor", "delicioso", "rico", "hambre", "food", "comer", "comida"],
+      strong: ["receta", "recetas", "cocinar", "restaurante", "pizza", "hamburguesa", "sushi", "almuerzo", "postres", "reposteria", "panaderia", "pasteleria", "chef", "gourmet", "menu del dia", "comida a domicilio", "clases de cocina"],
+      weak: ["sabor", "delicioso", "rico", "hambre", "food", "comer", "comida", "cocina", "menu", "delivery", "cena", "platos"],
       categories: ["restaurant", "food", "bakery", "cafe", "chef", "cooking"]
     },
     {
@@ -1715,8 +1715,8 @@
       label: "Emprendimiento y negocios",
       description: "emprender, negocio propio, pymes y franquicias",
       seed: "emprendimiento",
-      strong: ["emprendedor", "emprendedores", "emprender", "emprendimiento", "negocio propio", "negocio digital", "escalar tu negocio", "pymes", "franquicia", "infoproducto", "ingresos extra", "trabajar desde casa", "ganar dinero", "business", "facturar", "modelo de negocio"],
-      weak: ["negocio", "negocios", "empresa", "ingresos", "socio", "inversion inicial"],
+      strong: ["emprendedor", "emprendedores", "emprender", "emprendimiento", "negocio propio", "negocio digital", "escalar tu negocio", "pymes", "franquicia", "infoproducto", "ingresos extra", "trabajar desde casa", "ganar dinero", "facturar", "modelo de negocio"],
+      weak: ["negocio", "negocios", "empresa", "ingresos", "socio", "inversion inicial", "business"],
       categories: ["business", "consulting", "entrepreneur", "small business"]
     },
     {
@@ -1724,8 +1724,8 @@
       label: "Software y SaaS",
       description: "apps, plataformas, programas y suscripciones de software",
       seed: "software",
-      strong: ["software", "saas", "app", "aplicacion", "aplicativo", "descarga la app", "descargar", "baixe", "download", "app store", "google play", "prueba gratis", "free trial", "crm", "erp", "programa contable", "sistema de facturacion"],
-      weak: ["plataforma", "usuarios", "dashboard", "integraciones", "nube", "cloud"],
+      strong: ["software", "saas", "prueba gratis", "free trial", "crm", "erp", "programa contable", "sistema de facturacion", "facturacion electronica", "punto de venta", "software contable", "gestion de inventario", "automatiza tu negocio", "chatbot"],
+      weak: ["plataforma", "dashboard", "integraciones", "nube", "cloud", "app", "aplicacion", "aplicativo", "herramienta", "automatizacion", "suscripcion"],
       categories: ["software", "app page", "internet company", "computer company"]
     },
     {
@@ -1733,8 +1733,8 @@
       label: "Idiomas",
       description: "inglés, portugués y aprendizaje de idiomas",
       seed: "aprender ingles",
-      strong: ["ingles", "aprender ingles", "hablar ingles", "frances", "aleman", "portugues", "italiano", "idiomas", "idioma", "english", "language", "fluidez", "nativo", "toefl", "ielts"],
-      weak: ["pronunciacion", "vocabulario", "gramatica", "conversacion"],
+      strong: ["ingles", "aprender ingles", "hablar ingles", "idiomas", "idioma", "english", "language", "fluidez", "toefl", "ielts", "clases de ingles", "curso de ingles", "curso de frances", "aprender frances", "aprender aleman", "aprender portugues", "aprender italiano", "profesor nativo"],
+      weak: ["pronunciacion", "vocabulario", "gramatica", "conversacion", "italiano", "frances", "aleman", "portugues", "nativo"],
       categories: ["language school", "languages"]
     },
     {
@@ -1742,8 +1742,8 @@
       label: "Hogar y decoración",
       description: "muebles, decoración, cocina, limpieza y organización",
       seed: "decoracion hogar",
-      strong: ["decoracion", "decoracao", "home decor", "muebles", "moveis", "furniture", "colchon", "colchones", "sabanas", "utensilios", "organizador", "iluminacion", "lampara", "alfombra", "cortinas", "jardin", "limpieza", "aspiradora", "electrodomesticos", "freidora", "sofa", "cocina integral"],
-      weak: ["hogar", "casa", "home", "living", "dormitorio", "bano", "ambiente"],
+      strong: ["decoracion", "decoracao", "home decor", "muebles", "moveis", "furniture", "colchon", "colchones", "sabanas", "utensilios", "organizador", "iluminacion", "lampara", "alfombra", "cortinas", "jardin", "limpieza", "aspiradora", "electrodomesticos", "freidora", "sofa", "cocina integral", "cojin", "cojines", "almohada", "almohadas", "juego de sabanas", "juego de comedor", "juego de ollas", "ollas", "sarten", "vajilla", "toallas", "cobija", "cobijas", "edredon", "cubrelecho", "tapete", "sillas de comedor", "utensilios de cocina", "organizador de cocina"],
+      weak: ["hogar", "casa", "home", "living", "dormitorio", "bano", "ambiente", "cocina"],
       categories: ["home decor", "furniture", "home improvement", "kitchen", "household", "garden"]
     },
     {
@@ -1751,8 +1751,8 @@
       label: "Empleo y carrera profesional",
       description: "trabajo, currículum, entrevistas y vacantes",
       seed: "empleo",
-      strong: ["empleo", "vacante", "vacantes", "oferta de trabajo", "ofertas de trabajo", "hoja de vida", "curriculum", "cv", "entrevista de trabajo", "linkedin", "carrera profesional", "postulate", "contratando", "estamos contratando", "trabaja con nosotros", "job", "hiring"],
-      weak: ["trabajo", "salario", "sueldo", "oportunidad laboral", "profesional"],
+      strong: ["empleo", "vacante", "vacantes", "oferta de trabajo", "ofertas de trabajo", "hoja de vida", "curriculum", "entrevista de trabajo", "linkedin", "carrera profesional", "postulate", "contratando", "estamos contratando", "trabaja con nosotros", "job", "hiring"],
+      weak: ["trabajo", "salario", "sueldo", "oportunidad laboral", "profesional", "cv"],
       categories: ["employment agency", "recruiter", "jobs"]
     },
     {
@@ -1760,8 +1760,8 @@
       label: "Mascotas",
       description: "perros, gatos, alimento, accesorios y veterinaria",
       seed: "perros",
-      strong: ["perro", "perros", "gato", "gatos", "cachorro", "mascota", "mascotas", "pet shop", "veterinaria", "veterinario", "alimento para perros", "racao", "dog", "cat", "pets", "arnes", "collar para perro", "arena para gatos", "adiestramiento"],
-      weak: ["peludo", "peludos", "animal", "animales"],
+      strong: ["perro", "perros", "gato", "gatos", "cachorro", "mascota", "mascotas", "pet shop", "veterinaria", "veterinario", "alimento para perros", "racao", "pets", "arnes", "collar para perro", "arena para gatos", "adiestramiento", "perrito", "perritos", "gatito", "gatitos", "comida para perros", "comida para gatos"],
+      weak: ["peludo", "peludos", "animal", "animales", "dog", "cat"],
       categories: ["pet", "veterinarian", "animal", "pet store"]
     },
     {
@@ -1769,8 +1769,8 @@
       label: "Música y audio",
       description: "instrumentos, canto, producción musical y audio",
       seed: "aprender guitarra",
-      strong: ["guitarra", "piano", "canto", "cantar", "bateria musical", "produccion musical", "beats", "instrumento", "musico", "spotify", "podcast", "audiolibro", "audiolibros", "music", "dj"],
-      weak: ["musica", "cancion", "canciones", "audio", "sonido"],
+      strong: ["guitarra", "piano", "canto", "cantar", "bateria musical", "produccion musical", "instrumento", "musico", "spotify", "podcast", "audiolibro", "audiolibros", "dj", "clases de guitarra", "clases de piano", "clases de canto"],
+      weak: ["musica", "cancion", "canciones", "audio", "sonido", "music", "beats"],
       categories: ["musician", "band", "music", "record label", "podcast"]
     },
     {
@@ -1778,8 +1778,8 @@
       label: "Coaching y consultoría",
       description: "mentorías, asesorías y acompañamiento 1 a 1",
       seed: "mentoria",
-      strong: ["coaching", "coach", "mentoria", "mentor", "asesoria", "consultoria", "consultor", "acompanamiento", "sesion 1 a 1", "agenda una llamada", "llamada gratuita", "programa de acompanamiento", "consulting"],
-      weak: ["guia", "estrategia personalizada", "resultados", "metodo"],
+      strong: ["coaching", "coach", "mentoria", "mentor", "consultoria", "consultor", "acompanamiento", "sesion 1 a 1", "agenda una llamada", "llamada gratuita", "programa de acompanamiento", "consulting", "asesoria personalizada"],
+      weak: ["guia", "estrategia personalizada", "resultados", "metodo", "asesoria"],
       categories: ["coach", "life coach", "consulting agency", "business consultant"]
     },
     {
@@ -1787,8 +1787,8 @@
       label: "Creación de contenido",
       description: "influencers, YouTube, TikTok, edición y UGC",
       seed: "creador de contenido",
-      strong: ["creador de contenido", "creadores de contenido", "influencer", "youtube", "tiktok", "reels", "ugc", "editar videos", "edicion de video", "monetizar", "seguidores", "viralizar", "contenido viral", "content creator"],
-      weak: ["contenido", "videos", "redes", "instagram", "audiencia"],
+      strong: ["creador de contenido", "creadores de contenido", "influencer", "reels", "ugc", "editar videos", "edicion de video", "monetizar", "viralizar", "contenido viral", "content creator", "canal de youtube", "crecer en tiktok", "crecer en instagram", "ganar seguidores"],
+      weak: ["contenido", "videos", "redes", "instagram", "audiencia", "tiktok", "youtube", "seguidores"],
       categories: ["digital creator", "video creator", "blogger", "creator"]
     },
     {
@@ -1796,8 +1796,8 @@
       label: "Diseño y creatividad",
       description: "diseño gráfico, Canva, arte y manualidades",
       seed: "diseño grafico",
-      strong: ["diseno grafico", "canva", "photoshop", "ilustracion", "dibujo", "pintura", "manualidades", "crochet", "tejido", "bordado", "plantillas", "caligrafia", "arte", "design", "procreate"],
-      weak: ["creatividad", "creativo", "colores", "logo", "logos"],
+      strong: ["diseno grafico", "canva", "photoshop", "ilustracion", "dibujo", "manualidades", "crochet", "bordado", "caligrafia", "procreate", "plantillas de canva", "plantillas editables", "curso de dibujo", "curso de pintura", "diseno de logos"],
+      weak: ["creatividad", "creativo", "colores", "logo", "logos", "arte", "design", "tejido", "plantillas", "pintura"],
       categories: ["graphic designer", "artist", "arts & crafts", "design"]
     },
     {
@@ -1805,8 +1805,8 @@
       label: "Videojuegos y gaming",
       description: "juegos, consolas, apuestas y casinos online",
       seed: "juegos",
-      strong: ["videojuego", "videojuegos", "juego", "jogo", "game", "gaming", "jugar", "consola", "playstation", "xbox", "nintendo", "casino", "apuestas", "slots", "bonus de bienvenida", "free spins"],
-      weak: ["nivel", "jugadores", "partida", "ganar premios"],
+      strong: ["videojuego", "videojuegos", "gaming", "consola", "playstation", "xbox", "nintendo", "casino", "apuestas", "slots", "bonus de bienvenida", "free spins", "gamer", "ps5", "juego movil", "juego online", "juega gratis", "descarga el juego", "esports"],
+      weak: ["nivel", "jugadores", "partida", "ganar premios", "juego", "juegos", "jogo", "game", "games", "jugar"],
       categories: ["video game", "games", "gaming", "casino", "gambling"]
     },
     {
@@ -1823,8 +1823,8 @@
       label: "Seguros",
       description: "seguros de vida, salud, auto y hogar",
       seed: "seguro de vida",
-      strong: ["seguro", "seguros", "seguro de vida", "seguro de salud", "seguro de auto", "soat", "poliza", "aseguradora", "cobertura", "insurance"],
-      weak: ["proteccion", "protege a tu familia", "asistencia"],
+      strong: ["seguros", "seguro de vida", "seguro de salud", "seguro de auto", "soat", "poliza", "aseguradora", "insurance", "seguro de hogar", "seguro medico", "seguro de viaje", "seguro vehicular", "seguro todo riesgo"],
+      weak: ["proteccion", "protege a tu familia", "asistencia", "seguro", "cobertura"],
       categories: ["insurance", "insurance agent", "insurance company"]
     },
     {
@@ -1832,8 +1832,8 @@
       label: "Moda y accesorios",
       description: "ropa, calzado, bolsos, joyas y relojes",
       seed: "ropa mujer",
-      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisetas", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "moda", "fashion", "outfit", "coleccion", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "pantalones", "pantalon", "falda", "conjunto", "conjuntos", "shorts", "medias", "pijama", "sudadera", "hoodie", "joyeria", "anillo", "collar", "aretes", "pulsera", "reloj", "relojes", "lentes de sol", "gafas", "plata 925"],
-      weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "boutique", "accesorios"],
+      strong: ["vestido", "vestidos", "zapatillas", "sneakers", "calzado", "zapatos", "jeans", "remera", "camiseta", "camisetas", "camisa", "blusa", "lenceria", "ropa interior", "bikini", "traje de bano", "chaqueta", "campera", "fashion", "outfit", "talles", "tallas", "bolsos", "carteras", "tenis", "sandalias", "chanclas", "pantuflas", "slippers", "botas", "botines", "pantalones", "pantalon", "falda", "shorts", "medias", "pijama", "sudadera", "hoodie", "joyeria", "anillo", "collar", "aretes", "pulsera", "reloj", "relojes", "lentes de sol", "gafas", "plata 925", "zapato", "zapatilla", "tacones", "mocasines", "loafers", "shoes", "boots", "chaqueton", "abrigo", "abrigos", "chaleco", "traje", "sueter", "buzo", "leggings", "dress", "skirt", "t shirt", "tshirt", "jacket", "blazer", "underwear", "boxers", "brasier", "mochila", "mochilas", "morral", "bolso", "billetera", "billeteras", "tarjetero", "portatarjetas", "cinturon", "gorra", "gorras", "bufanda", "nueva coleccion", "conjunto deportivo", "moda femenina", "moda masculina", "ropa de mujer", "ropa de hombre"],
+      weak: ["ropa", "roupa", "clothing", "estilo", "look", "tendencia", "temporada", "prenda", "boutique", "accesorios", "coleccion", "conjunto", "conjuntos", "moda", "cartera"],
       categories: ["clothing", "fashion", "shoe", "apparel", "boutique", "jewelry", "watch", "accessories"]
     },
     {
@@ -1841,8 +1841,8 @@
       label: "Inversiones y bolsa",
       description: "acciones, fondos, rentabilidad y patrimonio",
       seed: "invertir",
-      strong: ["invertir", "inversion", "inversiones", "investir", "investimento", "acciones", "bolsa de valores", "fondos de inversion", "etf", "dividendos", "rentabilidad", "renta pasiva", "patrimonio", "cdt", "interes compuesto", "investing"],
-      weak: ["rendimiento", "capital", "ganancias", "portafolio"],
+      strong: ["invertir", "inversiones", "investir", "investimento", "bolsa de valores", "fondos de inversion", "etf", "dividendos", "rentabilidad", "renta pasiva", "patrimonio", "cdt", "interes compuesto", "investing", "invertir en acciones", "invierte desde", "inversion inmobiliaria"],
+      weak: ["rendimiento", "capital", "ganancias", "portafolio", "inversion", "acciones"],
       categories: ["investing service", "investment", "financial planner"]
     },
     {
@@ -1850,8 +1850,8 @@
       label: "Ventas y prospección",
       description: "vender más, cierre de ventas, prospectos y CRM",
       seed: "cerrar ventas",
-      strong: ["vender mas", "cerrar ventas", "cierre de ventas", "tecnicas de venta", "prospeccion", "prospectos", "vendedores", "equipo comercial", "whatsapp business", "ventas por whatsapp", "sales", "objeciones"],
-      weak: ["ventas", "vendas", "vender", "clientes", "comercial"],
+      strong: ["vender mas", "cerrar ventas", "cierre de ventas", "tecnicas de venta", "prospeccion", "prospectos", "vendedores", "equipo comercial", "whatsapp business", "ventas por whatsapp", "objeciones"],
+      weak: ["ventas", "vendas", "vender", "clientes", "comercial", "sales"],
       categories: ["sales"]
     },
     {
@@ -1859,8 +1859,8 @@
       label: "Fotografía y video",
       description: "cámaras, fotografía y edición de video",
       seed: "fotografia",
-      strong: ["fotografia", "fotografo", "camara", "camaras", "lightroom", "presets", "sesion de fotos", "filmmaking", "drone", "edicion de fotos", "photography", "videografia"],
-      weak: ["fotos", "foto", "video", "lente"],
+      strong: ["fotografia", "fotografo", "lightroom", "presets", "sesion de fotos", "filmmaking", "drone", "edicion de fotos", "photography", "videografia", "camara fotografica", "camara profesional", "camara reflex", "curso de fotografia"],
+      weak: ["fotos", "foto", "video", "lente", "camara", "camaras"],
       categories: ["photographer", "photography", "videographer"]
     },
     {
@@ -1877,8 +1877,8 @@
       label: "Eventos y experiencias",
       description: "conciertos, entradas, talleres presenciales y ferias",
       seed: "entradas concierto",
-      strong: ["entradas", "ingressos", "tickets", "boletas", "concierto", "festival", "evento", "eventos", "teatro", "conferencia", "congreso", "expo", "feria", "taller presencial"],
-      weak: ["experiencia", "en vivo", "ao vivo", "live", "noche", "cupos"],
+      strong: ["ingressos", "tickets", "boletas", "concierto", "festival", "teatro", "conferencia", "congreso", "expo", "taller presencial", "entradas para", "boleteria", "evento presencial", "organizacion de eventos"],
+      weak: ["experiencia", "en vivo", "ao vivo", "live", "noche", "cupos", "entradas", "evento", "eventos", "feria"],
       categories: ["event", "concert", "entertainment", "event planner", "performance venue"]
     },
     {
@@ -1886,8 +1886,8 @@
       label: "Legal y trámites",
       description: "abogados, visas, migración, trámites e impuestos",
       seed: "abogado",
-      strong: ["abogado", "abogados", "advogado", "visa", "visas", "migracion", "pasaporte", "ciudadania", "residencia", "tramite", "tramites", "impuestos", "declaracion de renta", "demanda", "pension", "divorcio", "lawyer"],
-      weak: ["legal", "derechos", "asesoria legal", "juridico"],
+      strong: ["abogado", "abogados", "advogado", "visas", "migracion", "pasaporte", "ciudadania", "tramite", "tramites", "impuestos", "declaracion de renta", "pension", "divorcio", "lawyer", "visa americana", "visa de trabajo", "visa de estudiante", "asesoria migratoria"],
+      weak: ["legal", "derechos", "asesoria legal", "juridico", "visa", "demanda", "residencia"],
       categories: ["lawyer", "legal", "law firm", "immigration lawyer", "tax preparation"]
     },
     {
@@ -1895,8 +1895,8 @@
       label: "Viajes y turismo",
       description: "vuelos, hoteles, paquetes y tours",
       seed: "viajes",
-      strong: ["vuelos", "pasajes", "passagens", "hotel", "hoteles", "resort", "paquetes turisticos", "vacaciones", "travel", "crucero", "todo incluido", "agencia de viajes", "excursion", "tour", "hospedaje", "airbnb", "destino"],
-      weak: ["viaje", "viajar", "viagem", "turismo", "playa", "praia", "aventura", "escapada"],
+      strong: ["vuelos", "pasajes", "passagens", "hotel", "hoteles", "resort", "paquetes turisticos", "crucero", "todo incluido", "agencia de viajes", "excursion", "tour", "hospedaje", "airbnb", "paquete turistico", "tiquetes aereos", "tiquetes", "plan vacacional"],
+      weak: ["viaje", "viajar", "viagem", "turismo", "playa", "praia", "aventura", "escapada", "vacaciones", "travel", "destino"],
       categories: ["travel", "hotel", "tour", "airline", "tourism"]
     },
     {
@@ -1904,8 +1904,8 @@
       label: "Bienes raíces",
       description: "venta y alquiler de propiedades, proyectos y lotes",
       seed: "apartamentos",
-      strong: ["departamento", "departamentos", "apartamento", "apartamentos", "casa en venta", "venta de casas", "alquiler", "arriendo", "inmobiliaria", "imobiliaria", "real estate", "lotes", "terrenos", "preventa", "condominio", "bienes raices", "propiedad", "propiedades", "proyecto de vivienda", "vis"],
-      weak: ["casa propia", "credito hipotecario", "metros cuadrados", "m2", "entrega inmediata"],
+      strong: ["departamentos", "apartamento", "apartamentos", "casa en venta", "venta de casas", "alquiler", "arriendo", "inmobiliaria", "imobiliaria", "real estate", "terrenos", "condominio", "bienes raices", "proyecto de vivienda", "vis", "lotes campestres", "lote campestre", "apartaestudio", "casas campestres", "finca raiz"],
+      weak: ["casa propia", "credito hipotecario", "metros cuadrados", "m2", "entrega inmediata", "departamento", "propiedad", "propiedades", "preventa", "lotes"],
       categories: ["real estate", "property", "apartment", "inmobiliaria"]
     },
     {
@@ -1922,8 +1922,8 @@
       label: "Tecnología y gadgets",
       description: "celulares, audífonos y accesorios electrónicos",
       seed: "audífonos",
-      strong: ["smartphone", "celular", "iphone", "android", "auriculares", "audifonos", "fone de ouvido", "smartwatch", "laptop", "notebook", "computadora", "tablet", "gadget", "cargador", "bluetooth", "parlante", "camara de seguridad", "consola", "funda para telefono", "power bank"],
-      weak: ["tecnologia", "technology", "tech", "wifi", "inteligente", "electronica", "pantalla", "bateria"],
+      strong: ["smartphone", "celular", "iphone", "android", "auriculares", "audifonos", "fone de ouvido", "smartwatch", "laptop", "notebook", "computadora", "tablet", "gadget", "cargador", "bluetooth", "parlante", "camara de seguridad", "consola", "funda para telefono", "power bank", "funda para movil", "funda para celular", "funda para iphone", "phone case", "carcasa", "protector de pantalla", "cargador inalambrico", "teclado", "airpods", "smart tv", "televisor"],
+      weak: ["tecnologia", "technology", "tech", "wifi", "inteligente", "electronica", "pantalla", "bateria", "telefono", "movil", "celulares", "usb"],
       categories: ["electronics", "computer", "technology", "mobile phone shop"]
     },
     {
@@ -1931,8 +1931,8 @@
       label: "Automotriz y movilidad",
       description: "autos, motos, repuestos y concesionarios",
       seed: "carros",
-      strong: ["auto", "autos", "carro", "carros", "coche", "vehiculo", "vehiculos", "camioneta", "suv", "concesionario", "concesionaria", "0km", "test drive", "neumaticos", "llantas", "repuestos", "taller mecanico", "moto", "motos", "motocicleta", "scooter electrico"],
-      weak: ["manejar", "conducir", "motor", "kilometros", "seminuevo", "usados"],
+      strong: ["autos", "carros", "vehiculo", "vehiculos", "camioneta", "suv", "concesionario", "concesionaria", "0km", "test drive", "neumaticos", "llantas", "repuestos", "taller mecanico", "motos", "motocicleta", "scooter electrico", "automovil", "automoviles", "carro nuevo", "carro usado"],
+      weak: ["manejar", "conducir", "motor", "kilometros", "seminuevo", "usados", "auto", "carro", "coche", "moto"],
       categories: ["automotive", "car dealership", "motorcycle", "vehicle", "auto"]
     },
     {
@@ -1940,8 +1940,8 @@
       label: "Alimentos y bebidas",
       description: "snacks, bebidas, café y productos de consumo",
       seed: "snacks",
-      strong: ["snack", "snacks", "mani", "crema de mani", "mantequilla de mani", "galletas", "granola", "cereal", "chocolate", "helado", "cafe", "cerveza", "vino", "vinos", "bebida", "bebidas", "jugo", "jugos", "salsa", "arepas", "empanadas", "organico", "vegano"],
-      weak: ["sabor", "delicioso", "antojo", "merienda"],
+      strong: ["snack", "snacks", "mani", "crema de mani", "mantequilla de mani", "galletas", "granola", "cereal", "helado", "cerveza", "vinos", "bebida", "bebidas", "jugo", "jugos", "arepas", "empanadas", "vegano", "cafe molido", "cafe en grano", "cafe de especialidad", "chocolates", "reposteria", "postres", "domicilios de comida"],
+      weak: ["sabor", "delicioso", "antojo", "merienda", "cafe", "chocolate", "vino", "salsa", "organico"],
       categories: ["food & beverage", "beverage", "grocery", "winery", "brewery", "food"]
     },
     {
@@ -1949,8 +1949,8 @@
       label: "Servicios y hogar",
       description: "plomería, limpieza, reformas, mudanzas y energía solar",
       seed: "energia solar",
-      strong: ["plomero", "electricista", "mudanzas", "fletes", "limpieza de oficinas", "remodelacion", "reformas", "energia solar", "paneles solares", "fumigacion", "cerrajero", "aire acondicionado", "instalacion", "mantenimiento"],
-      weak: ["servicio", "servicios", "servicos", "services", "presupuesto", "a domicilio"],
+      strong: ["plomero", "electricista", "mudanzas", "fletes", "limpieza de oficinas", "remodelacion", "reformas", "energia solar", "paneles solares", "fumigacion", "cerrajero", "aire acondicionado", "servicio tecnico", "instalacion a domicilio", "mantenimiento de aires"],
+      weak: ["servicio", "servicios", "servicos", "services", "presupuesto", "a domicilio", "instalacion", "mantenimiento"],
       categories: ["contractor", "service", "plumber", "electrician", "solar", "cleaning service"]
     }
   ];
@@ -2386,6 +2386,15 @@
     }
     return termCache.get(term);
   }
+  var weakCache = /* @__PURE__ */ new Map();
+  function weakTerms(n) {
+    let list = weakCache.get(n.id);
+    if (!list) {
+      list = [...n.weak].sort((a, b) => b.length - a.length);
+      weakCache.set(n.id, list);
+    }
+    return list;
+  }
   function countTerm(haystack, term) {
     const re2 = termRegex(term);
     if (!re2) return 0;
@@ -2397,42 +2406,53 @@
       [input2.title, input2.body, input2.linkDescription, input2.pageName, (input2.caption ?? "").replace(/\./g, " ")].filter(Boolean).join(" ")
     )} `;
     const cats = normalizeText((input2.categories ?? []).join(" | "));
+    const title = ` ${normalizeText(input2.title)} `;
     const scored = [];
     let total = 0;
     for (const n of NICHES) {
       let score = 0;
       const terms = [];
       let rest = text;
+      let strongHits = 0;
+      let weakHits = 0;
+      let categoryHit = false;
       for (const term of n.strong) {
         const c = countTerm(text, term);
         if (c) {
-          score += 2 * Math.min(c, 3);
+          score += 2 * Math.min(c, 3) + (countTerm(title, term) ? 2 : 0);
+          strongHits++;
           terms.push(term);
           const re2 = termRegex(term);
           re2.lastIndex = 0;
           rest = rest.replace(re2, " ");
         }
       }
-      for (const term of n.weak) {
+      for (const term of weakTerms(n)) {
         const c = countTerm(rest, term);
         if (c) {
-          score += Math.min(c, 3);
+          score += Math.min(c, 3) + (countTerm(title, term) ? 1 : 0);
+          weakHits++;
           terms.push(term);
+          const re2 = termRegex(term);
+          re2.lastIndex = 0;
+          rest = rest.replace(re2, " ");
         }
       }
       for (const cat of n.categories ?? []) {
         if (cats && cats.includes(normalizeText(cat))) {
           score += 4;
+          categoryHit = true;
           terms.push(`categoría: ${cat}`);
         }
       }
+      if (!strongHits && !categoryHit && weakHits < 2) continue;
       total += score;
       if (score > 0) scored.push({ id: n.id, score: CHANNEL_NICHES.has(n.id) ? score * 0.6 : score, terms });
     }
     scored.sort((a, b) => b.score - a.score);
     const best = scored[0];
     if (!best || best.score < 1.2) return { niche: null, niches: [], confidence: 0, terms: [] };
-    const niches = scored.filter((s) => s.score >= Math.max(1.2, best.score * 0.45)).slice(0, 3).map((s) => s.id);
+    const niches = scored.filter((s) => s.score >= Math.max(1.2, best.score * 0.6)).slice(0, 3).map((s) => s.id);
     const share = best.score / total;
     const volume = Math.min(1, best.score / 8);
     return { niche: best.id, niches, confidence: Math.round(share * volume * 100) / 100, terms: best.terms.slice(0, 8) };
@@ -30904,7 +30924,7 @@ ${a.texto}`, "Copiar anuncio")
   });
   (async () => {
     state.store = await LocalStore.open();
-    const DATA_VERSION = "5";
+    const DATA_VERSION = "6";
     try {
       if (localStorage.getItem("cifra-data-version") !== DATA_VERSION) {
         await state.store.reindex();
