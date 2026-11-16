@@ -17,23 +17,34 @@ radar/
 1. Descarga y descomprime la carpeta `radar/extension` (o el zip `cifra-radar-extension.zip`).
 2. En Chrome abre `chrome://extensions`, activa **Modo desarrollador**, pulsa **Cargar descomprimida** y elige esa carpeta
    (la que contiene `manifest.json`). Se abre sola la pestaña **Cifra Radar** con las instrucciones.
-3. Pulsa **«Llenar mi radar ahora»** (o **Actualizar**, arriba a la derecha): Cifra Radar busca por ti en la Biblioteca de Anuncios
-   (una búsqueda por cada uno de los 45 nichos, los más vistos primero, editables en **Buscar → Radar automático**) y te deja cientos
-   de anuncios reales categorizados. Si se alcanza el límite por hora, espera y continúa sola mientras el radar esté abierto.
+3. Pulsa **«Llenar mi radar ahora»** (o **Actualizar**, arriba a la derecha). Cifra Radar busca por ti en la Biblioteca de Anuncios
+   **en segundo plano**: puedes cerrar la pestaña del radar y seguir usando Chrome. Después **se actualiza sola cada 24 horas**
+   (se puede apagar en **Buscar → Radar automático**).
+   - Cada pasada revisa primero a tus anunciantes seguidos y luego tus nichos (los 45 o los que elijas), con 1 a 3 búsquedas por
+     nicho. Cada día cambia la palabra de cada nicho (hay tres por nicho) y alterna entre lo más visto, anuncios nuevos, videos e
+     imágenes, para traer anuncios distintos con el mismo esfuerzo.
+   - Máximo 30 búsquedas por hora: si hay más, espera y continúa sola. Si Meta limita las búsquedas, se pausa una hora, reintenta
+     una vez y, si sigue limitado o pide iniciar sesión, se detiene y avisa.
+   - **Carga profunda** (opcional, activada): intenta que cada búsqueda cargue más de una tanda de resultados.
+   - El ícono de la extensión muestra cuántos anuncios nuevos hay desde la última vez que abriste el radar.
 4. Explora, organizado como un buscador de anuncios:
-   - **Descubrir**: barra lateral con **Nicho** (45 categorías, con conteos; un anuncio puede estar en varias), **Días activo**,
-     **Plataforma**, **Destino** (sitio web, WhatsApp, redes, apps), **Formato**, **País**, **Tamaño del anunciante** y **Estado**.
-     Tarjetas con **días activo, copias (🔥 desde 10) y variantes**, precio detectado, «Top #N vistos» y video reproducible. Los
-     anuncios **duplicados** (Meta agrupa las copias de una misma creatividad) se ven apilados y se ordenan con **«🔥 Más duplicados»**.
-     También ordena por escalando, más vistos, más recientes, más días activo y más variantes, y **agrupa por landing**.
+   - **Descubrir**: resumen con cifras (activos, nuevos en 24 horas, confirmados hoy, con 10 o más copias) y barra lateral con
+     **Nicho** (45 categorías, con conteos; un anuncio puede estar en varias), **Nuevos en tu radar**, **Visto en la Biblioteca**,
+     **Días activo**, **Plataforma**, **Destino** (sitio web, WhatsApp, redes, apps), **Formato**, **País**, **Tamaño del
+     anunciante** y **Estado**. Tarjetas con **días activo, copias y variantes**, precio detectado, «Top #N vistos» y video
+     reproducible. Los anuncios **duplicados** (Meta agrupa las copias de una misma creatividad) se ven apilados y se ordenan con
+     **«🔥 Más duplicados»**. También ordena por escalando, más vistos, más recientes, más días activo, más variantes y recién
+     agregados, y **agrupa por landing**.
    - **Anunciantes**: marcas con sus anuncios activos, el más longevo, lo que más duplican y sus nichos. En cada anunciante:
      **Seguir**, **«Traer todos sus anuncios»** (abre su página de la Biblioteca) y los **~activos que informa Meta**.
-   - **Siguiendo**: tus marcas seguidas y **lo nuevo** desde tu última visita; «Actualizar» las revisa primero.
+   - **Siguiendo**: tus marcas seguidas y **lo nuevo** desde tu última visita; cada pasada las revisa primero.
    - **Buscar**: cualquier palabra clave en la Biblioteca con país, orden (más vistos o relevancia), estado, formato, plataforma,
-     idioma y tamaño del anunciante; búsquedas recientes y la lista del **radar automático**.
-   - **Studio**: arma la base de tu producto en 3 pasos (la base, la venta, el negocio) y genera la **oferta, 3 anuncios, la
-     estructura de la landing y respuestas a objeciones**, inspirándote en tus favoritos. Sin clave usa plantillas; con tu propia
-     clave de Anthropic (se guarda solo en ese Chrome) lo escribe Claude. No inventa testimonios, cifras ni resultados.
+     idioma y tamaño del anunciante; búsquedas recientes y la configuración del **radar automático** (nichos, búsquedas por nicho,
+     país y tus propias palabras clave).
+   - **Studio**: describe tu producto en una sola pantalla y recibe **3 anuncios, 10 ganchos, la oferta, la estructura de la
+     landing y respuestas a objeciones**, todo editable, copiable y descargable. Desde cualquier anuncio, **«Usar en Studio»** lo
+     agrega como referencia (se toman sus ángulos, no su texto). Sin clave usa plantillas; con tu propia clave de Anthropic (se
+     guarda solo en ese Chrome) lo escribe Claude, con avance en vivo. No inventa testimonios, cifras ni resultados.
    - **Favoritos**: con el corazón de cualquier anuncio o **pegando el enlace** de un anuncio de la Biblioteca.
    - **Tus datos** (engranaje): respaldo JSON, importar, volver a clasificar y borrar.
    Si prefieres buscar tú mismo en la Biblioteca, el panel de abajo a la derecha tiene **«Guardar en Cifra Radar»**.
@@ -46,7 +57,7 @@ herramientas llaman «ganadores» se deduce de señales como estas (impresiones,
 **Cómo busca por ti (igual que otras herramientas «puente»):** abre la Biblioteca en una pestaña de fondo de tu propio Chrome, con tu
 sesión, espera a que la página cargue sus resultados, baja un par de veces como lo haría una persona, guarda lo que cargó y cierra la
 pestaña. Hace como máximo 30 búsquedas por hora, deja una pausa entre búsquedas y **se detiene sola** si Meta limita el acceso o pide
-iniciar sesión. No resuelve CAPTCHAs ni inicia sesión por ti. Ten en cuenta que las condiciones de uso de Meta restringen la recolección
+iniciar sesión. La pasada automática diaria sigue las mismas reglas. No resuelve CAPTCHAs ni inicia sesión por ti. Ten en cuenta que las condiciones de uso de Meta restringen la recolección
 automatizada: úsalo con moderación y bajo tu responsabilidad.
 
 Todo queda guardado **solo en ese Chrome** (IndexedDB), con la misma lógica de fusión y puntuación que la plataforma web. La plataforma
