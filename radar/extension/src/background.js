@@ -57,6 +57,11 @@ const R = CifraCore.runner;
 const runnerDeps = {
   follows: async () => Array.from((await (await store()).follows()).values()).map((f) => ({ pageId: f.pageId, name: f.name })),
   touchFollow: async (pageId) => (await store()).touchFollow(pageId, { refreshedAt: new Date().toISOString() }),
+  stale: async () => {
+    const s = await store();
+    const [ads, advs] = await Promise.all([s.allAds(), s.allAdvertisers()]);
+    return R.staleAdvertisers(ads, advs);
+  },
   notify: () => chrome.runtime.sendMessage({ type: "radar:run" }).catch(() => {}),
 };
 
@@ -121,7 +126,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return;
   }
   if (msg.type === "radar:runStart" && (fromApp || fromExtension)) {
-    (msg.mode === "follows" ? R.startFollowsRun(runnerDeps) : R.startFullRun("manual", runnerDeps)).then(
+    (msg.mode === "follows" ? R.startFollowsRun(runnerDeps) : msg.mode === "media" ? R.startMediaRun(runnerDeps) : R.startFullRun("manual", runnerDeps)).then(
       (run) => reply({ ok: Boolean(run), total: run ? run.total : 0 }),
       (err) => reply({ ok: false, error: String((err && err.message) || err) }),
     );

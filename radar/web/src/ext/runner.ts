@@ -86,6 +86,8 @@ export interface RunState {
 
 export interface RunnerDeps {
   follows(): Promise<Array<{ pageId: string; name: string }>>;
+  /** Anunciantes con anuncios activos cuya imagen ya venció, de más a menos (ver staleAdvertisers). */
+  stale?(): Promise<Array<{ pageId: string; name: string }>>;
   touchFollow(pageId: string): Promise<void>;
   /** Avisa a las páginas abiertas del radar (cambios de estado). */
   notify?(): void;
@@ -111,11 +113,48 @@ export function normalizeSettings(raw: unknown): RadarSettings {
   };
 }
 
+/** Anunciantes cuyas imágenes se renuevan en cada pasada diaria (los de más anuncios vencidos). */
+export const STALE_PER_PASS = 8;
+/** Máximo de anunciantes en «Recargar imágenes». */
+export const STALE_PER_REFRESH = 20;
+
 /** Cuántas búsquedas hace una pasada completa con esta configuración. */
-export function planSize(s: RadarSettings, follows = 0) {
+export function planSize(s: RadarSettings, follows = 0, stale = 0) {
   const niches = s.niches?.length ?? NICHES.length;
-  return follows + niches * s.depth + s.extra.length * Math.min(2, s.depth);
+  return follows + Math.min(stale, STALE_PER_PASS) + niches * s.depth + s.extra.length * Math.min(2, s.depth);
 }
+
+interface StaleAd {
+  pageId: string;
+  isActive: boolean;
+  isManual?: boolean;
+  mediaExpiresAt: string | null;
+}
+
+/**
+ * Meta firma los enlaces de imágenes y videos con una fecha de vencimiento.
+ * Devuelve los anunciantes con anuncios activos cuyo enlace ya venció, de más a
+ * menos anuncios vencidos: abrir la página de cada uno en la Biblioteca trae
+ * enlaces nuevos para todos sus anuncios de una vez.
+ */
+export function staleAdvertisers(ads: StaleAd[], advertisers: Array<{ pageId: string; name: string }>, now = new Date()) {
+  const limit = now.toISOString();
+  const counts = new Map<string, number>();
+  for (const a of ads) {
+    if (!a.isActive || a.isManual || !a.mediaExpiresAt || a.mediaExpiresAt > limit || !/^\d+$/.test(a.pageId)) continue;
+    counts.set(a.pageId, (counts.get(a.pageId) ?? 0) + 1);
+  }
+  const names = new Map(advertisers.map((a) => [a.pageId, a.name]));
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([pageId, count]) => ({ pageId, name: names.get(pageId) ?? pageId, count }));
+}
+
+const staleItems = (list: Array<{ pageId: string; name: string }>, skip: Set<string>, max: number): RunItem[] =>
+  list
+    .filter((a) => !skip.has(a.pageId))
+    .slice(0, max)
+    .map((a) => ({ label: `${a.name} · imágenes`, url: advertiserLibraryUrl(a.pageId), q: "" }));
 
 /**
  * Lista de búsquedas de una pasada completa. Cada día cambia la palabra de
@@ -123,10 +162,17 @@ export function planSize(s: RadarSettings, follows = 0) {
  * videos, solo imágenes), para traer anuncios distintos con el mismo esfuerzo.
  * Va por «vueltas»: primero una búsqueda de cada nicho, luego la segunda…
  */
-export function buildPlan(s: RadarSettings, follows: Array<{ pageId: string; name: string }>, now = new Date()): RunItem[] {
+export function buildPlan(
+  s: RadarSettings,
+  follows: Array<{ pageId: string; name: string }>,
+  now = new Date(),
+  stale: Array<{ pageId: string; name: string }> = [],
+): RunItem[] {
   const day = Math.floor(now.getTime() / DAY_MS);
   const since = new Date(now.getTime() - 30 * DAY_MS).toISOString().slice(0, 10);
   const items: RunItem[] = follows.map((f) => ({ label: f.name, url: advertiserLibraryUrl(f.pageId), q: "", follow: f.pageId }));
+  // Los seguidos ya renuevan sus imágenes; después, los anunciantes con más imágenes vencidas.
+  items.push(...staleItems(stale, new Set(follows.map((f) => f.pageId)), STALE_PER_PASS));
   const seen = new Set<string>();
   const add = (q: string, facet: Facet) => {
     const key = `${q.toLowerCase()}|${facet}`;
@@ -262,10 +308,16 @@ export function startRun(kind: RunState["kind"], items: RunItem[], full: boolean
   });
 }
 
-/** Pasada completa con la configuración guardada: seguidos + nichos + palabras propias. */
+/** Pasada completa con la configuración guardada: seguidos + imágenes vencidas + nichos + palabras propias. */
 export async function startFullRun(kind: RunState["kind"], deps: RunnerDeps, now = new Date()) {
-  const [settings, follows] = await Promise.all([getSettings(), deps.follows()]);
-  return startRun(kind, buildPlan(settings, follows, now), true, deps);
+  const [settings, follows, stale] = await Promise.all([getSettings(), deps.follows(), deps.stale?.() ?? Promise.resolve([])]);
+  return startRun(kind, buildPlan(settings, follows, now, stale), true, deps);
+}
+
+/** Solo renovar imágenes vencidas: una búsqueda por anunciante, los de más anuncios vencidos primero. */
+export async function startMediaRun(deps: RunnerDeps) {
+  const stale = (await deps.stale?.()) ?? [];
+  return startRun("manual", staleItems(stale, new Set(), STALE_PER_REFRESH), false, deps);
 }
 
 /** Solo los anunciantes seguidos. */

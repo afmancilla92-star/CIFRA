@@ -26,7 +26,7 @@ import {
   type SearchOptions,
 } from "./discovery";
 import { LocalStore, RETENTION_DAYS, type Favorite, type Follow, type LogEntry } from "./store";
-import { DEFAULT_SETTINGS, nextAutoAt, normalizeSettings, planSize, RUN_KEY, SETTINGS_KEY, type RadarSettings, type RunState } from "./runner";
+import { DEFAULT_SETTINGS, nextAutoAt, normalizeSettings, planSize, RUN_KEY, SETTINGS_KEY, STALE_PER_REFRESH, type RadarSettings, type RunState } from "./runner";
 import { nicheSeeds } from "../lib/niche/seeds";
 import { addReference, studioView } from "./studio";
 import { chip, h, icon, platformBadge, type Child } from "./ui";
@@ -55,6 +55,8 @@ export interface View extends AdRecord {
   seenAgo: number;
   /** Días desde que entró a tu radar. */
   addedAgo: number;
+  /** Meta ya hizo vencer el enlace de su imagen o video. */
+  mediaExpired: boolean;
 }
 
 type Screen = "discover" | "advertisers" | "advertiser" | "following" | "search" | "studio" | "favorites" | "data";
@@ -162,6 +164,7 @@ async function load() {
       dest: destOf(a),
       copies: Math.max(1, a.collationCount ?? 1),
       seenAgo: daysAgo(a.lastSeenAt),
+      mediaExpired: Boolean(a.media.length && a.mediaExpiresAt && Date.parse(a.mediaExpiresAt) <= now),
       addedAgo: daysAgo(a.firstSeenAt),
       variantsCount: Math.max(1, a.variants ?? 1, a.landingKey ? (groups.get(`${a.pageId}|${a.landingKey}`) ?? 1) : 1),
       search: normalizeText([a.pageName, a.title, a.body, a.linkDescription, a.caption, a.landingKey].filter(Boolean).join(" ")),
@@ -299,6 +302,45 @@ function placeholder(expired: boolean) {
   );
 }
 
+/** Anuncios activos con la imagen vencida y anunciantes a los que pertenecen. */
+function staleStats() {
+  const ads = state.ads.filter((a) => a.isActive && !a.isManual && a.mediaExpired);
+  return { ads: ads.length, advertisers: new Set(ads.map((a) => a.pageId)).size };
+}
+
+/**
+ * Meta firma los enlaces de imágenes y videos y los hace vencer a los pocos días.
+ * Cifra guarda el enlace (no descarga la creatividad), así que se renueva
+ * volviendo a abrir la página del anunciante en la Biblioteca.
+ */
+function expiredMedia(ad: View) {
+  const adv = state.advertisers.get(ad.pageId);
+  const canRefresh = Boolean(adv && /^\d+$/.test(ad.pageId));
+  const loading = state.fetching === ad.pageId;
+  return h(
+    "div",
+    { class: "thumb thumb-empty thumb-expired" },
+    icon("refresh", 22),
+    h("span", null, "La imagen venció: Meta renueva sus enlaces cada pocos días."),
+    canRefresh
+      ? h(
+          "button",
+          {
+            class: "btn small",
+            disabled: busy() || Boolean(state.run?.running),
+            title: `Abre la página de ${ad.pageName} en la Biblioteca y trae enlaces nuevos para todos sus anuncios`,
+            onclick: (e: Event) => {
+              e.stopPropagation();
+              void fetchAdvertiser(adv!);
+            },
+          },
+          loading ? h("span", { class: "spinner" }) : null,
+          loading ? "Recargando…" : "Recargar imágenes",
+        )
+      : null,
+  );
+}
+
 /** Miniatura de un video cuyo archivo ya expiró (Meta hace caducar los enlaces). */
 function previewImage(src: string) {
   const box = h(
@@ -315,21 +357,23 @@ function previewImage(src: string) {
 function media(ad: View) {
   const first = ad.media[0];
   if (!first) return placeholder(false);
+  // Enlace vencido: ni se intenta cargar (Meta respondería con error).
+  if (ad.mediaExpired) return expiredMedia(ad);
   const wrap = h("div", { class: "thumb" });
   const playVideo = () => {
     const v = h("video", { src: first.url, poster: first.preview ?? undefined, controls: true, autoplay: true, playsinline: true });
     v.addEventListener("click", (e) => e.stopPropagation());
-    v.addEventListener("error", () => wrap.replaceWith(first.preview ? previewImage(first.preview) : placeholder(true)));
+    v.addEventListener("error", () => wrap.replaceWith(first.preview ? previewImage(first.preview) : expiredMedia(ad)));
     wrap.replaceChildren(v);
   };
   const src = first.type === "video" ? first.preview : first.url;
   if (src) {
     const img = h("img", { src, alt: "", loading: "lazy", referrerpolicy: "no-referrer" });
-    img.addEventListener("error", () => wrap.replaceWith(placeholder(true)));
+    img.addEventListener("error", () => wrap.replaceWith(expiredMedia(ad)));
     wrap.append(img);
   } else if (first.type === "video") {
     const v = h("video", { src: first.url, preload: "metadata", muted: true, playsinline: true });
-    v.addEventListener("error", () => wrap.replaceWith(placeholder(true)));
+    v.addEventListener("error", () => wrap.replaceWith(expiredMedia(ad)));
     wrap.append(v);
   }
   if (first.type === "video") {
@@ -577,7 +621,7 @@ function saveSettings(patch: Partial<RadarSettings>) {
 
 function emptyRadar() {
   const u = state.run;
-  const total = planSize(state.settings, state.follows.size);
+  const total = planSize(state.settings, state.follows.size, staleStats().advertisers);
   return h(
     "section",
     { class: "hero-empty card" },
@@ -748,6 +792,30 @@ function summaryStrip() {
   );
 }
 
+/** Aviso de imágenes vencidas con un botón para renovarlas todas en segundo plano. */
+function staleBanner() {
+  const st = staleStats();
+  if (!st.ads) return null;
+  const running = Boolean(state.run?.running);
+  const searches = Math.min(st.advertisers, STALE_PER_REFRESH);
+  return h(
+    "div",
+    { class: "media-banner" },
+    icon("refresh", 18),
+    h(
+      "span",
+      { class: "grow" },
+      h("b", null, `${fmtNum(st.ads)} ${st.ads === 1 ? "anuncio activo tiene" : "anuncios activos tienen"} la imagen vencida. `),
+      `Meta renueva sus enlaces cada pocos días. Recargarlas hace ${searches} ${searches === 1 ? "búsqueda" : "búsquedas"} en segundo plano (una por anunciante); la actualización diaria también las renueva.`,
+    ),
+    h(
+      "button",
+      { class: "btn btn-primary", disabled: running, onclick: () => void startUpdate({ media: true }) },
+      running ? "Actualizando…" : "Recargar imágenes",
+    ),
+  );
+}
+
 function discoverView() {
   if (!state.ads.some((a) => !a.isManual)) return emptyRadar();
   const f = state.f;
@@ -775,6 +843,7 @@ function discoverView() {
       h("h1", { class: "page-title" }, title),
       h("p", { class: "muted lead" }, description),
       summaryStrip(),
+      staleBanner(),
       h(
         "div",
         { class: "toolbar" },
@@ -1366,7 +1435,7 @@ function autoStatus() {
 function radarSettingsCard() {
   const s = state.settings;
   const selected = new Set(s.niches ?? NICHES.map((n) => n.id));
-  const total = planSize(s, state.follows.size);
+  const total = planSize(s, state.follows.size, staleStats().advertisers);
   const hours = Math.max(1, Math.ceil(total / MAX_PER_HOUR));
   const extra = h("textarea", { class: "queries", rows: 3, placeholder: "Ej.: faja reductora\nfreidora de aire", "aria-label": "Tus palabras clave", "data-key": "radar-extra" }, s.extra.join("\n")) as HTMLTextAreaElement;
   extra.addEventListener("change", () => saveSettings({ extra: parseQueries(extra.value) }));
@@ -1466,12 +1535,15 @@ async function syncRun() {
   }
 }
 
-async function startUpdate(o: { followsOnly?: boolean } = {}) {
+async function startUpdate(o: { followsOnly?: boolean; media?: boolean } = {}) {
   if (state.run?.running) return;
   state.notice = "";
   try {
-    const r = await chrome.runtime.sendMessage({ type: "radar:runStart", mode: o.followsOnly ? "follows" : "full" });
-    if (!r?.ok) state.notice = r?.error ?? (o.followsOnly ? "Aún no sigues a ningún anunciante." : "No hay búsquedas configuradas.");
+    const mode = o.followsOnly ? "follows" : o.media ? "media" : "full";
+    const r = await chrome.runtime.sendMessage({ type: "radar:runStart", mode });
+    if (!r?.ok)
+      state.notice =
+        r?.error ?? (mode === "follows" ? "Aún no sigues a ningún anunciante." : mode === "media" ? "No hay imágenes vencidas que recargar." : "No hay búsquedas configuradas.");
   } catch (e) {
     state.notice = `No se pudo iniciar la actualización: ${(e as Error).message}`;
   }
@@ -1759,6 +1831,23 @@ function copyButton(text: string, label = "Copiar texto") {
   return b;
 }
 
+/** Vuelve a abrir un solo anuncio en la Biblioteca para traer enlaces nuevos de su creatividad. */
+async function refreshAd(id: string) {
+  if (busy()) return;
+  if ((await searchesLeft()) <= 0) {
+    state.notice = `Llegaste al límite de ${MAX_PER_HOUR} búsquedas por hora. Inténtalo más tarde.`;
+    render();
+    return;
+  }
+  state.fetching = id;
+  openDetail(id);
+  const r = await runJob(adLibraryUrl(id), "", 0);
+  state.fetching = "";
+  state.notice = r.blocked ? blockedMessage(r.blocked) : r.detected ? "" : (r.error ?? "La Biblioteca no devolvió este anuncio (puede que ya no esté disponible).");
+  await load();
+  if (document.querySelector(".modal")) openDetail(id);
+}
+
 function openDetail(id: string) {
   const ad = state.byId.get(id);
   if (!ad) return;
@@ -1807,6 +1896,14 @@ function openDetail(id: string) {
         favButton(ad, false),
         followButton({ pageId: ad.pageId, name: ad.pageName }),
         h("a", { class: "btn", href: adLibraryUrl(ad.id), target: "_blank", rel: "noopener" }, "Ver en la Biblioteca", icon("ext", 13)),
+        ad.mediaExpired
+          ? h(
+              "button",
+              { class: "btn", disabled: busy() || Boolean(state.run?.running), onclick: () => void refreshAd(ad.id) },
+              icon("refresh", 14),
+              state.fetching === ad.id ? "Recargando…" : "Recargar creatividad",
+            )
+          : null,
         ad.linkUrl ? h("a", { class: "btn", href: ad.linkUrl, target: "_blank", rel: "noopener noreferrer nofollow" }, "Abrir landing", icon("ext", 13)) : null,
         ad.landingKey ? h("button", { class: "btn", onclick: () => filterBy({ landing: ad.landingKey! }) }, icon("branch", 14), "Misma landing") : null,
         text ? copyButton(text) : null,
@@ -2058,8 +2155,10 @@ document.addEventListener("keydown", (e) => {
       state.run = (changes[RUN_KEY]!.newValue as RunState | undefined) ?? null;
       if (before?.running && state.run && !state.run.running) {
         // Terminó: se muestra el resumen y se recalcula la próxima automática.
+        // Al terminar se muestra todo lo nuevo (anuncios e imágenes renovadas) de una vez.
         state.notice = state.run.message;
-        void syncRun().then(() => (state.pendingNew && state.ads.length ? render() : load()));
+        state.pendingNew = 0;
+        void syncRun().then(load);
         return;
       }
       if (!before?.running && state.run?.running) {

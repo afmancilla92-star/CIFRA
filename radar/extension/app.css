@@ -217,6 +217,11 @@ footer { max-width: 1560px; margin: 0 auto; padding: 0 18px 32px; }
 .thumb video { background: #000; }
 .thumb video[controls] { object-fit: contain; }
 .thumb-empty { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; padding: 18px; text-align: center; color: var(--faint); font-size: 12px; }
+.thumb-expired { background: var(--surface-2); color: var(--soft); }
+.thumb-expired .btn { margin-top: 2px; }
+.media-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; padding: 12px 14px; border-radius: var(--r-card); border: 1px solid var(--gold); background: var(--gold-soft); color: var(--gold-ink); }
+.media-banner .ico { flex-shrink: 0; }
+.media-banner .grow { min-width: min(320px, 100%); }
 .play { position: absolute; inset: 0; margin: auto; width: 52px; height: 52px; border-radius: 50%; border: 0; background: rgba(20, 27, 52, .72); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .play .ico { fill: #fff; stroke: none; margin-left: 3px; }
 .play:hover { background: var(--accent); }

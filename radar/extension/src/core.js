@@ -1891,6 +1891,8 @@ var CifraCore = (() => {
     MAX_PER_HOUR: () => MAX_PER_HOUR,
     RUN_KEY: () => RUN_KEY,
     SETTINGS_KEY: () => SETTINGS_KEY,
+    STALE_PER_PASS: () => STALE_PER_PASS,
+    STALE_PER_REFRESH: () => STALE_PER_REFRESH,
     buildPlan: () => buildPlan,
     ensureAlarm: () => ensureAlarm,
     getRun: () => getRun,
@@ -1900,8 +1902,10 @@ var CifraCore = (() => {
     nextAutoAt: () => nextAutoAt,
     normalizeSettings: () => normalizeSettings,
     planSize: () => planSize,
+    staleAdvertisers: () => staleAdvertisers,
     startFollowsRun: () => startFollowsRun,
     startFullRun: () => startFullRun,
+    startMediaRun: () => startMediaRun,
     startRun: () => startRun,
     stopRun: () => stopRun,
     tick: () => tick
@@ -2047,14 +2051,28 @@ var CifraCore = (() => {
       deep: typeof r.deep === "boolean" ? r.deep : DEFAULT_SETTINGS.deep
     };
   }
-  function planSize(s, follows = 0) {
+  var STALE_PER_PASS = 8;
+  var STALE_PER_REFRESH = 20;
+  function planSize(s, follows = 0, stale = 0) {
     const niches = s.niches?.length ?? NICHES.length;
-    return follows + niches * s.depth + s.extra.length * Math.min(2, s.depth);
+    return follows + Math.min(stale, STALE_PER_PASS) + niches * s.depth + s.extra.length * Math.min(2, s.depth);
   }
-  function buildPlan(s, follows, now = /* @__PURE__ */ new Date()) {
+  function staleAdvertisers(ads, advertisers, now = /* @__PURE__ */ new Date()) {
+    const limit = now.toISOString();
+    const counts = /* @__PURE__ */ new Map();
+    for (const a of ads) {
+      if (!a.isActive || a.isManual || !a.mediaExpiresAt || a.mediaExpiresAt > limit || !/^\d+$/.test(a.pageId)) continue;
+      counts.set(a.pageId, (counts.get(a.pageId) ?? 0) + 1);
+    }
+    const names = new Map(advertisers.map((a) => [a.pageId, a.name]));
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).map(([pageId, count]) => ({ pageId, name: names.get(pageId) ?? pageId, count }));
+  }
+  var staleItems = (list, skip, max) => list.filter((a) => !skip.has(a.pageId)).slice(0, max).map((a) => ({ label: `${a.name} · imágenes`, url: advertiserLibraryUrl(a.pageId), q: "" }));
+  function buildPlan(s, follows, now = /* @__PURE__ */ new Date(), stale = []) {
     const day = Math.floor(now.getTime() / DAY_MS);
     const since = new Date(now.getTime() - 30 * DAY_MS).toISOString().slice(0, 10);
     const items = follows.map((f) => ({ label: f.name, url: advertiserLibraryUrl(f.pageId), q: "", follow: f.pageId }));
+    items.push(...staleItems(stale, new Set(follows.map((f) => f.pageId)), STALE_PER_PASS));
     const seen = /* @__PURE__ */ new Set();
     const add = (q, facet) => {
       const key = `${q.toLowerCase()}|${facet}`;
@@ -2176,8 +2194,12 @@ var CifraCore = (() => {
     });
   }
   async function startFullRun(kind, deps, now = /* @__PURE__ */ new Date()) {
-    const [settings, follows] = await Promise.all([getSettings(), deps.follows()]);
-    return startRun(kind, buildPlan(settings, follows, now), true, deps);
+    const [settings, follows, stale] = await Promise.all([getSettings(), deps.follows(), deps.stale?.() ?? Promise.resolve([])]);
+    return startRun(kind, buildPlan(settings, follows, now, stale), true, deps);
+  }
+  async function startMediaRun(deps) {
+    const stale = await deps.stale?.() ?? [];
+    return startRun("manual", staleItems(stale, /* @__PURE__ */ new Set(), STALE_PER_REFRESH), false, deps);
   }
   async function startFollowsRun(deps) {
     const follows = await deps.follows();

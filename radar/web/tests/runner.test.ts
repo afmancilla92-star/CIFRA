@@ -12,6 +12,8 @@ import {
   normalizeSettings,
   planSize,
   SETTINGS_KEY,
+  staleAdvertisers,
+  startMediaRun,
   startRun,
   stopRun,
   tick,
@@ -110,6 +112,44 @@ describe("plan de la pasada", () => {
 
   it("con todos los nichos y profundidad 2 son 90 búsquedas", () => {
     expect(buildPlan(normalizeSettings({ depth: 2 }), []).length).toBe(NICHES.length * 2);
+  });
+});
+
+describe("imágenes vencidas", () => {
+  const ad = (pageId: string, expires: string | null, isActive = true) => ({ pageId, isActive, mediaExpiresAt: expires });
+  const past = "2026-11-10T00:00:00.000Z";
+  const future = "2026-11-30T00:00:00.000Z";
+
+  it("ordena los anunciantes por anuncios activos con la imagen vencida", () => {
+    const list = staleAdvertisers(
+      [ad("1", past), ad("1", past), ad("1", future), ad("2", past), ad("3", past, false), ad("4", null), ad("manual-x", past)],
+      [{ pageId: "1", name: "Uno" }, { pageId: "2", name: "Dos" }],
+      new Date("2026-11-16T12:00:00Z"),
+    );
+    expect(list).toEqual([
+      { pageId: "1", name: "Uno", count: 2 },
+      { pageId: "2", name: "Dos", count: 1 },
+    ]);
+  });
+
+  it("la pasada diaria renueva primero las imágenes de quienes más tienen vencidas (sin repetir seguidos)", () => {
+    const s = normalizeSettings({ depth: 1, niches: ["moda"] });
+    const stale = Array.from({ length: 12 }, (_, i) => ({ pageId: String(100 + i), name: `Marca ${i}` }));
+    const plan = buildPlan(s, [{ pageId: "100", name: "Marca 0" }], new Date("2026-11-16T12:00:00Z"), stale);
+    expect(plan[0]).toMatchObject({ follow: "100" });
+    const refresh = plan.filter((i) => i.label.endsWith("· imágenes"));
+    expect(refresh).toHaveLength(8);
+    expect(refresh[0]!.url).toContain("view_all_page_id=101");
+    expect(plan.at(-1)!.q).toBeTruthy(); // los nichos van después
+    expect(planSize(s, 1, 12)).toBe(plan.length);
+  });
+
+  it("«Recargar imágenes» hace una búsqueda por anunciante, hasta 20", async () => {
+    const stale = Array.from({ length: 25 }, (_, i) => ({ pageId: String(200 + i), name: `M${i}` }));
+    const run = await startMediaRun({ ...deps, stale: async () => stale });
+    expect(run).toMatchObject({ running: true, full: false, total: 20 });
+    expect(run!.items.every((i) => i.url.includes("view_all_page_id=") && i.q === "")).toBe(true);
+    expect(await startMediaRun({ ...deps, stale: async () => [] }).then((r) => r?.running)).toBe(true); // ya hay una en curso
   });
 });
 
