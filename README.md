@@ -17,7 +17,9 @@ A visitor lands, takes a 25-question assessment, and receives a scored profile. 
 
 ## Structure
 
-All application code lives in `cifra-app/`.
+- `cifra-app/` — the quiz funnel described above.
+- `radar/` — **Cifra Radar**, an ad-intelligence search engine for real ads from the Meta Ad Library
+  (web platform + Chrome extension). See [`radar/README.md`](radar/README.md) (in Spanish).
 
 ## Running locally
 
