@@ -219,6 +219,10 @@ footer { max-width: 1560px; margin: 0 auto; padding: 0 18px 32px; }
 .thumb-empty { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; padding: 18px; text-align: center; color: var(--faint); font-size: 12px; }
 .thumb-expired { background: var(--surface-2); color: var(--soft); }
 .thumb-expired .btn { margin-top: 2px; }
+.outdated-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 1560px; margin: 12px auto 0; padding: 12px 14px; border-radius: var(--r-card); border: 1px solid var(--fire); background: var(--fire-soft); color: var(--fire-ink); }
+.outdated-bar .grow { min-width: min(320px, 100%); }
+.outdated-actions { display: grid; gap: 4px; justify-items: start; }
+.outdated-actions small { font-size: 12px; }
 .media-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; padding: 12px 14px; border-radius: var(--r-card); border: 1px solid var(--gold); background: var(--gold-soft); color: var(--gold-ink); }
 .media-banner .ico { flex-shrink: 0; }
 .media-banner .grow { min-width: min(320px, 100%); }

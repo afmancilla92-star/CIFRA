@@ -120,6 +120,8 @@ const state = {
   anyOld: false,
   /** Anuncios nuevos guardados en segundo plano que aún no se muestran. */
   pendingNew: 0,
+  /** La parte en segundo plano de la extensión es de otra versión (falta recargar la extensión). */
+  bgOutdated: false,
   /** Anunciante del que se están trayendo anuncios. */
   fetching: "",
   notice: "",
@@ -1541,6 +1543,12 @@ async function startUpdate(o: { followsOnly?: boolean; media?: boolean } = {}) {
   try {
     const mode = o.followsOnly ? "follows" : o.media ? "media" : "full";
     const r = await chrome.runtime.sendMessage({ type: "radar:runStart", mode });
+    if (r === undefined) {
+      // Una versión anterior de la parte en segundo plano no conoce este mensaje.
+      state.bgOutdated = true;
+      render();
+      return;
+    }
     if (!r?.ok)
       state.notice =
         r?.error ?? (mode === "follows" ? "Aún no sigues a ningún anunciante." : mode === "media" ? "No hay imágenes vencidas que recargar." : "No hay búsquedas configuradas.");
@@ -1581,6 +1589,46 @@ function updatePill() {
     icon("refresh", 14),
     "Actualizar",
     h("small", null, state.lastUpdate ? timeAgo(state.lastUpdate) : "nunca"),
+  );
+}
+
+/** Comprueba que la parte en segundo plano sea de esta misma versión. */
+async function checkBackground() {
+  try {
+    const r = await chrome.runtime.sendMessage({ type: "radar:version" });
+    state.bgOutdated = r?.version !== chrome.runtime.getManifest().version;
+  } catch {
+    state.bgOutdated = true;
+  }
+}
+
+/**
+ * Recarga la extensión completa (como el botón ↻ de chrome://extensions). Chrome
+ * cierra esta pestaña al recargar; la extensión la vuelve a abrir al arrancar.
+ */
+async function finishUpdate() {
+  await chrome.storage.local.set({ reopenAppAfterReload: true }).catch(() => {});
+  chrome.runtime.reload();
+}
+
+function outdatedBar() {
+  if (!state.bgOutdated) return null;
+  return h(
+    "div",
+    { class: "outdated-bar" },
+    icon("refresh", 18),
+    h(
+      "span",
+      { class: "grow" },
+      h("b", null, "Falta un paso para terminar la actualización. "),
+      "La parte de Cifra que busca en segundo plano sigue en la versión anterior, por eso «Actualizar» y «Recargar imágenes» no responden.",
+    ),
+    h(
+      "div",
+      { class: "outdated-actions" },
+      h("button", { class: "btn btn-primary", onclick: () => void finishUpdate() }, "Terminar actualización"),
+      h("small", null, "Si no cambia nada: abre chrome://extensions y pulsa ↻ en Cifra Radar."),
+    ),
   );
 }
 
@@ -2074,6 +2122,7 @@ function render() {
         h("button", { class: `icon-btn${state.screen === "data" ? " active" : ""}`, title: "Tus datos", "aria-label": "Tus datos", onclick: () => go("data") }, icon("gear", 17)),
       ),
     ),
+    ...(state.bgOutdated ? [outdatedBar()!] : []),
     ...(state.pendingNew ? [newBar()!] : []),
     ...(state.notice
       ? [h("div", { class: "notice" }, h("span", null, state.notice), h("button", { class: "link-btn", onclick: () => { state.notice = ""; render(); } }, "Cerrar"))]
@@ -2125,6 +2174,7 @@ document.addEventListener("keydown", (e) => {
       await chrome.storage.local.set({ [SETTINGS_KEY]: state.settings });
     }
     await syncRun();
+    await checkBackground();
     state.searchLeft = await searchesLeft();
   } catch {
     /* fuera de la extensión (pruebas) */

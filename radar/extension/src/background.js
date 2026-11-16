@@ -136,6 +136,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     R.stopRun(runnerDeps).then(() => reply({ ok: true }));
     return true;
   }
+  if (msg.type === "radar:version" && (fromApp || fromExtension)) {
+    reply({ version: chrome.runtime.getManifest().version });
+    return;
+  }
   if (msg.type === "radar:seen" && (fromApp || fromExtension)) {
     clearBadge().then(() => reply({ ok: true }));
     return true;
@@ -176,6 +180,12 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 R.tick(runnerDeps).catch(() => {});
 
 // Al instalar por primera vez, abre el explorador con las instrucciones.
-chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === "install") openApp();
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason === "install") return openApp();
+  // «Terminar actualización» recarga la extensión desde el radar: se vuelve a abrir.
+  const { reopenAppAfterReload } = await chrome.storage.local.get("reopenAppAfterReload");
+  if (reopenAppAfterReload) {
+    await chrome.storage.local.remove("reopenAppAfterReload");
+    openApp();
+  }
 });

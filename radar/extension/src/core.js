@@ -2052,7 +2052,7 @@ var CifraCore = (() => {
     };
   }
   var STALE_PER_PASS = 8;
-  var STALE_PER_REFRESH = 20;
+  var STALE_PER_REFRESH = 40;
   function planSize(s, follows = 0, stale = 0) {
     const niches = s.niches?.length ?? NICHES.length;
     return follows + Math.min(stale, STALE_PER_PASS) + niches * s.depth + s.extra.length * Math.min(2, s.depth);

@@ -116,7 +116,7 @@ export function normalizeSettings(raw: unknown): RadarSettings {
 /** Anunciantes cuyas imágenes se renuevan en cada pasada diaria (los de más anuncios vencidos). */
 export const STALE_PER_PASS = 8;
 /** Máximo de anunciantes en «Recargar imágenes». */
-export const STALE_PER_REFRESH = 20;
+export const STALE_PER_REFRESH = 40;
 
 /** Cuántas búsquedas hace una pasada completa con esta configuración. */
 export function planSize(s: RadarSettings, follows = 0, stale = 0) {

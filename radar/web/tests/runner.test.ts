@@ -144,10 +144,10 @@ describe("imágenes vencidas", () => {
     expect(planSize(s, 1, 12)).toBe(plan.length);
   });
 
-  it("«Recargar imágenes» hace una búsqueda por anunciante, hasta 20", async () => {
-    const stale = Array.from({ length: 25 }, (_, i) => ({ pageId: String(200 + i), name: `M${i}` }));
+  it("«Recargar imágenes» hace una búsqueda por anunciante, hasta 40", async () => {
+    const stale = Array.from({ length: 50 }, (_, i) => ({ pageId: String(200 + i), name: `M${i}` }));
     const run = await startMediaRun({ ...deps, stale: async () => stale });
-    expect(run).toMatchObject({ running: true, full: false, total: 20 });
+    expect(run).toMatchObject({ running: true, full: false, total: 40 });
     expect(run!.items.every((i) => i.url.includes("view_all_page_id=") && i.q === "")).toBe(true);
     expect(await startMediaRun({ ...deps, stale: async () => [] }).then((r) => r?.running)).toBe(true); // ya hay una en curso
   });
