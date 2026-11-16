@@ -10,3 +10,4 @@ export { NICHES, nicheLabel } from "../lib/niche/catalog";
 export { SCORE_DISCLAIMER, scoreTier } from "../lib/scoring";
 export { countryName } from "../lib/sources/countries";
 export { normalizeText, truncate } from "../lib/text";
+export * as runner from "./runner";

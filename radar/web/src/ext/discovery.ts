@@ -28,6 +28,8 @@ export interface SearchOptions {
   media?: "all" | "image" | "video" | "meme" | "none";
   platform?: string;
   language?: string;
+  /** Solo anuncios que empezaron a circular desde esta fecha (AAAA-MM-DD). */
+  since?: string;
 }
 
 const BASE = "https://www.facebook.com/ads/library/";
@@ -43,6 +45,10 @@ export function librarySearchUrl(q: string, o: SearchOptions) {
   });
   if (o.platform) p.set("publisher_platforms[0]", o.platform);
   if (o.language) p.set("content_languages[0]", o.language);
+  if (o.since && /^\d{4}-\d{2}-\d{2}$/.test(o.since)) {
+    p.set("start_date[min]", o.since);
+    p.set("start_date[max]", "");
+  }
   if ((o.sort ?? "total_impressions") === "total_impressions") {
     p.set("sort_data[mode]", "total_impressions");
     p.set("sort_data[direction]", "desc");
@@ -103,7 +109,7 @@ export async function nextSlotAt(): Promise<number> {
   return log.length < MAX_PER_HOUR ? Date.now() : log[0]! + 3_600_000 + 5_000;
 }
 
-async function noteSearch() {
+export async function noteSearch() {
   const log = await recentSearches();
   log.push(Date.now());
   await chrome.storage.local.set({ searchLog: log });
@@ -117,12 +123,12 @@ export function blockedMessage(reason: string | null) {
 }
 
 /** Abre una URL de la Biblioteca en segundo plano, espera el resultado y cierra la pestaña. */
-export async function runJob(url: string, q: string, scrolls = 3): Promise<JobResult> {
+export async function runJob(url: string, q: string, scrolls = 3, extra: { deep?: boolean; rank?: boolean } = {}): Promise<JobResult> {
   await noteSearch();
   const tab = await chrome.tabs.create({ url, active: false });
   const jobId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const key = `job:${tab.id}`;
-  await chrome.storage.session.set({ [key]: { id: jobId, q, scrolls } });
+  await chrome.storage.session.set({ [key]: { id: jobId, q, scrolls, deep: Boolean(extra.deep), rank: extra.rank !== false } });
   return new Promise((resolve) => {
     let finished = false;
     const finish = (r: Partial<JobResult>) => {

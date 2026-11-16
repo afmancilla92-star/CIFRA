@@ -3,9 +3,10 @@
  *
  * Lee una COPIA de las respuestas que la propia Biblioteca de Anuncios ya
  * descargó para mostrarte resultados y reenvía al script de la extensión
- * solo las que contienen anuncios. No hace peticiones propias, no cambia la
- * página, no pagina ni hace scroll automático, y no envía nada fuera del
- * navegador: el envío a tu plataforma ocurre solo cuando pulsas "Enviar".
+ * solo las que contienen anuncios. No hace peticiones propias y no envía nada
+ * fuera del navegador. Mientras navegas tú, no cambia la página; solo en las
+ * búsquedas que pide el radar puede avisar a la lista de que cargue su
+ * siguiente tanda (ver «carga profunda» más abajo).
  */
 (() => {
   if (window.__cifraRadarHook) return;
@@ -33,6 +34,58 @@
     queue = [];
     queued = 0;
     for (const m of pending) window.postMessage(m, window.location.origin);
+  });
+
+  // Carga profunda (solo en búsquedas pedidas desde el radar): en una pestaña de
+  // fondo Chrome no entrega los avisos de «este elemento está a la vista», así
+  // que la lista no carga más resultados aunque se baje. Se recuerda qué
+  // elementos observa la página y, cuando el radar lo pide («kick»), se le avisa
+  // de los que están al final de la lista. No se hacen peticiones propias: es la
+  // página la que decide cargar su siguiente tanda, como al bajar con el ratón.
+  const NativeIO = window.IntersectionObserver;
+  const observers = new Set();
+  if (typeof NativeIO === "function") {
+    try {
+      window.IntersectionObserver = class extends NativeIO {
+        constructor(callback, options) {
+          super(callback, options);
+          this.__cifraCallback = callback;
+          this.__cifraTargets = new Set();
+          observers.add(this);
+        }
+        observe(target) {
+          this.__cifraTargets.add(target);
+          return super.observe(target);
+        }
+        unobserve(target) {
+          this.__cifraTargets.delete(target);
+          return super.unobserve(target);
+        }
+        disconnect() {
+          this.__cifraTargets.clear();
+          observers.delete(this);
+          return super.disconnect();
+        }
+      };
+    } catch (_) {
+      /* si no se puede envolver, simplemente no hay carga profunda */
+    }
+  }
+  window.addEventListener("message", (e) => {
+    if (e.source !== window || !e.data || e.data[TAG] !== 1 || e.data.kind !== "kick") return;
+    const bottom = document.documentElement.scrollHeight - 2500;
+    for (const io of observers) {
+      for (const target of Array.from(io.__cifraTargets || [])) {
+        try {
+          if (!target.isConnected) continue;
+          const rect = target.getBoundingClientRect();
+          if (rect.top + window.scrollY < bottom) continue;
+          io.__cifraCallback.call(io, [{ target, isIntersecting: true, intersectionRatio: 1, boundingClientRect: rect, intersectionRect: rect, rootBounds: null, time: performance.now() }], io);
+        } catch (_) {
+          /* nunca interferir con la página */
+        }
+      }
+    }
   });
 
   function relay(text) {

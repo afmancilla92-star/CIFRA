@@ -40,6 +40,7 @@ var CifraCore = (() => {
     mapExtensionPayload: () => mapExtensionPayload,
     nicheLabel: () => nicheLabel,
     normalizeText: () => normalizeText,
+    runner: () => runner_exports,
     scoreTier: () => scoreTier,
     timeAgo: () => timeAgo,
     truncate: () => truncate
@@ -1879,6 +1880,422 @@ var CifraCore = (() => {
   };
   function libraryPageUrl(pageId) {
     return /^\d+$/.test(pageId) ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${pageId}` : null;
+  }
+
+  // src/ext/runner.ts
+  var runner_exports = {};
+  __export(runner_exports, {
+    ALARM: () => ALARM,
+    DEFAULT_SETTINGS: () => DEFAULT_SETTINGS,
+    LAST_FULL_KEY: () => LAST_FULL_KEY,
+    MAX_PER_HOUR: () => MAX_PER_HOUR,
+    RUN_KEY: () => RUN_KEY,
+    SETTINGS_KEY: () => SETTINGS_KEY,
+    buildPlan: () => buildPlan,
+    ensureAlarm: () => ensureAlarm,
+    getRun: () => getRun,
+    getSettings: () => getSettings,
+    handleJobDone: () => handleJobDone,
+    handleTabRemoved: () => handleTabRemoved,
+    nextAutoAt: () => nextAutoAt,
+    normalizeSettings: () => normalizeSettings,
+    planSize: () => planSize,
+    startFollowsRun: () => startFollowsRun,
+    startFullRun: () => startFullRun,
+    startRun: () => startRun,
+    stopRun: () => stopRun,
+    tick: () => tick
+  });
+
+  // src/lib/niche/seeds.ts
+  var ALT_SEEDS = {
+    salud: ["dolor articular", "tratamiento natural"],
+    salud_mental: ["terapia online", "estrés"],
+    educacion: ["maestría", "becas"],
+    cursos: ["masterclass", "certificado online"],
+    fitness: ["entrenamiento en casa", "gimnasio"],
+    nutricion: ["bajar de peso", "plan de alimentación"],
+    desarrollo_personal: ["hábitos", "mentalidad"],
+    crianza: ["bebé", "maternidad"],
+    suplementos: ["colágeno", "proteína"],
+    espiritualidad: ["tarot", "ley de atracción"],
+    productividad: ["planner", "gestión del tiempo"],
+    religion: ["oración", "devocional"],
+    belleza: ["maquillaje", "cuidado del cabello"],
+    marketing: ["facebook ads", "embudo de ventas"],
+    relaciones: ["recuperar a tu ex", "matrimonio"],
+    ia: ["chatgpt", "automatización con ia"],
+    finanzas: ["préstamos", "educación financiera"],
+    gastronomia: ["repostería", "curso de cocina"],
+    emprendimiento: ["negocio propio", "ingresos extra"],
+    software: ["crm", "facturación electrónica"],
+    idiomas: ["curso de inglés", "aprender francés"],
+    hogar: ["muebles", "organizador"],
+    empleo: ["vacantes", "hoja de vida"],
+    mascotas: ["gatos", "alimento para perros"],
+    musica: ["clases de piano", "producción musical"],
+    coaching: ["coaching", "consultoría"],
+    contenido: ["editar videos", "monetizar"],
+    diseno: ["canva", "ilustración"],
+    gaming: ["videojuegos", "gamer"],
+    ecommerce: ["dropshipping", "tienda online"],
+    seguros: ["seguro de salud", "soat"],
+    moda: ["zapatillas", "ropa hombre"],
+    inversiones: ["fondos de inversión", "renta pasiva"],
+    ventas: ["técnicas de venta", "ventas por whatsapp"],
+    fotografia: ["curso de fotografía", "edición de video"],
+    trading: ["forex", "criptomonedas"],
+    eventos: ["festival", "boletas"],
+    legal: ["visa americana", "abogados"],
+    viajes: ["vuelos", "paquetes turísticos"],
+    inmobiliaria: ["proyecto de vivienda", "arriendo"],
+    leads: ["solicita información", "agenda tu cita"],
+    tecnologia: ["smartwatch", "celulares"],
+    automotriz: ["camionetas", "motos"],
+    alimentos: ["café de especialidad", "bebidas"],
+    servicios: ["remodelación", "paneles solares"]
+  };
+  function nicheSeeds(id) {
+    const def = NICHES.find((n) => n.id === id);
+    if (!def) return [];
+    return Array.from(/* @__PURE__ */ new Set([def.seed, ...ALT_SEEDS[id] ?? []]));
+  }
+
+  // src/ext/discovery.ts
+  var DEFAULT_QUERIES = NICHES.map((n) => n.seed);
+  var MAX_PER_HOUR = 30;
+  var BASE = "https://www.facebook.com/ads/library/";
+  function librarySearchUrl(q, o) {
+    const p = new URLSearchParams({
+      active_status: o.status ?? "active",
+      ad_type: "all",
+      country: o.country || "ALL",
+      q,
+      search_type: "keyword_unordered",
+      media_type: o.media ?? "all"
+    });
+    if (o.platform) p.set("publisher_platforms[0]", o.platform);
+    if (o.language) p.set("content_languages[0]", o.language);
+    if (o.since && /^\d{4}-\d{2}-\d{2}$/.test(o.since)) {
+      p.set("start_date[min]", o.since);
+      p.set("start_date[max]", "");
+    }
+    if ((o.sort ?? "total_impressions") === "total_impressions") {
+      p.set("sort_data[mode]", "total_impressions");
+      p.set("sort_data[direction]", "desc");
+    }
+    return `${BASE}?${p.toString()}`;
+  }
+  function advertiserLibraryUrl(pageId) {
+    const p = new URLSearchParams({
+      active_status: "active",
+      ad_type: "all",
+      country: "ALL",
+      view_all_page_id: pageId,
+      search_type: "page",
+      media_type: "all"
+    });
+    return `${BASE}?${p.toString()}`;
+  }
+  async function recentSearches() {
+    const { searchLog = [] } = await chrome.storage.local.get("searchLog");
+    const hourAgo = Date.now() - 36e5;
+    return searchLog.filter((t) => t > hourAgo);
+  }
+  async function searchesLeft() {
+    return Math.max(0, MAX_PER_HOUR - (await recentSearches()).length);
+  }
+  async function nextSlotAt() {
+    const log = (await recentSearches()).sort((a, b) => a - b);
+    return log.length < MAX_PER_HOUR ? Date.now() : log[0] + 36e5 + 5e3;
+  }
+  async function noteSearch() {
+    const log = await recentSearches();
+    log.push(Date.now());
+    await chrome.storage.local.set({ searchLog: log });
+  }
+  function blockedMessage(reason) {
+    if (reason === "login") return "La Biblioteca pidió iniciar sesión. Abre facebook.com, inicia sesión tú mismo y vuelve a intentarlo.";
+    if (reason === "rate_limit")
+      return "Meta limitó temporalmente las búsquedas desde tu navegador. Se detuvo para proteger tu cuenta: vuelve a intentarlo en una hora.";
+    return reason ? `Búsqueda detenida: ${reason}` : "";
+  }
+
+  // src/ext/runner.ts
+  var RUN_KEY = "radarRun";
+  var SETTINGS_KEY = "radarSettings";
+  var LAST_FULL_KEY = "radarLastFull";
+  var ALARM = "radar-tick";
+  var DAY_MS = 864e5;
+  var GAP_MS = 8e3;
+  var LIMITED_GAP_MS = 25e3;
+  var JOB_TIMEOUT_MS = 1e5;
+  var BLOCK_PAUSE_MS = 60 * 6e4;
+  var DEFAULT_SETTINGS = { auto: true, depth: 2, niches: null, extra: [], country: "ALL", deep: true };
+  var EXTRA_FACETS = ["recent", "video", "image"];
+  var FACET_LABEL = { top: "", recent: " · nuevos", video: " · videos", image: " · imágenes" };
+  function normalizeSettings(raw) {
+    const r = raw && typeof raw === "object" ? raw : {};
+    const valid = new Set(NICHES.map((n) => n.id));
+    const niches = Array.isArray(r.niches) ? r.niches.filter((x) => typeof x === "string" && valid.has(x)) : null;
+    return {
+      auto: typeof r.auto === "boolean" ? r.auto : DEFAULT_SETTINGS.auto,
+      depth: Math.min(3, Math.max(1, Math.round(Number(r.depth) || DEFAULT_SETTINGS.depth))),
+      niches: niches && niches.length && niches.length < valid.size ? niches : null,
+      extra: Array.isArray(r.extra) ? Array.from(new Set(r.extra.filter((x) => typeof x === "string").map((x) => x.trim().slice(0, 80)).filter(Boolean))).slice(0, 60) : [],
+      country: typeof r.country === "string" && /^[A-Z]{2,3}$/.test(r.country) ? r.country : DEFAULT_SETTINGS.country,
+      deep: typeof r.deep === "boolean" ? r.deep : DEFAULT_SETTINGS.deep
+    };
+  }
+  function planSize(s, follows = 0) {
+    const niches = s.niches?.length ?? NICHES.length;
+    return follows + niches * s.depth + s.extra.length * Math.min(2, s.depth);
+  }
+  function buildPlan(s, follows, now = /* @__PURE__ */ new Date()) {
+    const day = Math.floor(now.getTime() / DAY_MS);
+    const since = new Date(now.getTime() - 30 * DAY_MS).toISOString().slice(0, 10);
+    const items = follows.map((f) => ({ label: f.name, url: advertiserLibraryUrl(f.pageId), q: "", follow: f.pageId }));
+    const seen = /* @__PURE__ */ new Set();
+    const add = (q, facet) => {
+      const key = `${q.toLowerCase()}|${facet}`;
+      if (!q || seen.has(key)) return;
+      seen.add(key);
+      items.push({
+        label: `«${q}»${FACET_LABEL[facet]}`,
+        url: librarySearchUrl(q, {
+          country: s.country,
+          media: facet === "video" ? "video" : facet === "image" ? "image" : "all",
+          since: facet === "recent" ? since : void 0
+        }),
+        q,
+        rank: facet === "top"
+      });
+    };
+    const facetFor = (round, offset) => round === 0 ? "top" : EXTRA_FACETS[(day + round - 1 + offset) % EXTRA_FACETS.length];
+    const ids = s.niches?.length ? s.niches : NICHES.map((n) => n.id);
+    for (let round = 0; round < s.depth; round++) {
+      for (const id of ids) {
+        const seeds = nicheSeeds(id);
+        if (seeds.length) add(seeds[(day + round) % seeds.length], facetFor(round, 0));
+      }
+      if (round < 2) for (const q of s.extra) add(q, facetFor(round, 0));
+    }
+    return items;
+  }
+  async function getSettings() {
+    const v = await chrome.storage.local.get(SETTINGS_KEY);
+    return normalizeSettings(v[SETTINGS_KEY]);
+  }
+  async function getRun() {
+    const v = await chrome.storage.local.get(RUN_KEY);
+    return v[RUN_KEY] ?? null;
+  }
+  async function setRun(run) {
+    await chrome.storage.local.set({ [RUN_KEY]: run });
+  }
+  async function nextAutoAt() {
+    const s = await getSettings();
+    if (!s.auto) return null;
+    const v = await chrome.storage.local.get([LAST_FULL_KEY, "lastUpdate"]);
+    const last = Number(v[LAST_FULL_KEY]) || (typeof v.lastUpdate === "string" ? Date.parse(v.lastUpdate) : 0);
+    return last ? last + DAY_MS : null;
+  }
+  var chain = Promise.resolve();
+  function locked(fn) {
+    const next = chain.then(fn, fn);
+    chain = next.catch(() => {
+    });
+    return next;
+  }
+  var timer = null;
+  function schedule(ms, deps) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      void tick(deps);
+    }, Math.max(250, ms));
+  }
+  async function ensureAlarm(running) {
+    const period = running ? 1 : 15;
+    const current = await chrome.alarms.get(ALARM);
+    if (!current || current.periodInMinutes !== period) await chrome.alarms.create(ALARM, { periodInMinutes: period, delayInMinutes: period });
+  }
+  async function closeTab(tabId) {
+    await chrome.storage.session.remove(`job:${tabId}`).catch(() => {
+    });
+    await chrome.tabs.remove(tabId).catch(() => {
+    });
+  }
+  function summary(run) {
+    return `Listo: ${run.created} anuncios nuevos y ${run.updated} actualizados en ${run.done} ${run.done === 1 ? "búsqueda" : "búsquedas"}.`;
+  }
+  async function finish(run, message, deps) {
+    const job = run.job;
+    const done2 = { ...run, running: false, job: null, current: null, waitingUntil: null, waitingReason: null, message, finishedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    await setRun(done2);
+    if (job) await closeTab(job.tabId);
+    await ensureAlarm(false);
+    deps.notify?.();
+    return done2;
+  }
+  function startRun(kind, items, full, deps) {
+    return locked(async () => {
+      const current = await getRun();
+      if (current?.running) return current;
+      if (!items.length) return null;
+      const now = Date.now();
+      const run = {
+        id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+        kind,
+        full,
+        running: true,
+        items,
+        index: 0,
+        done: 0,
+        total: items.length,
+        current: items[0].label,
+        created: 0,
+        updated: 0,
+        detected: 0,
+        message: "",
+        waitingUntil: null,
+        waitingReason: null,
+        startedAt: new Date(now).toISOString(),
+        finishedAt: null,
+        job: null,
+        lastJobEndedAt: 0,
+        limited: false,
+        blocks: 0
+      };
+      await setRun(run);
+      if (full) await chrome.storage.local.set({ [LAST_FULL_KEY]: now, lastUpdate: run.startedAt });
+      await ensureAlarm(true);
+      deps.notify?.();
+      schedule(300, deps);
+      return run;
+    });
+  }
+  async function startFullRun(kind, deps, now = /* @__PURE__ */ new Date()) {
+    const [settings, follows] = await Promise.all([getSettings(), deps.follows()]);
+    return startRun(kind, buildPlan(settings, follows, now), true, deps);
+  }
+  async function startFollowsRun(deps) {
+    const follows = await deps.follows();
+    return startRun(
+      "manual",
+      follows.map((f) => ({ label: f.name, url: advertiserLibraryUrl(f.pageId), q: "", follow: f.pageId })),
+      false,
+      deps
+    );
+  }
+  function stopRun(deps, message = "Actualización detenida.") {
+    return locked(async () => {
+      const run = await getRun();
+      if (!run?.running) return run;
+      return finish(run, message, deps);
+    });
+  }
+  function tick(deps) {
+    return locked(async () => {
+      let run = await getRun();
+      const now = Date.now();
+      if (!run?.running) {
+        const due = await nextAutoAt();
+        if (due !== null && now >= due) {
+          void startFullRun("auto", deps);
+        } else {
+          await ensureAlarm(false);
+        }
+        return;
+      }
+      await ensureAlarm(true);
+      if (run.job) {
+        if (now - run.job.startedAt < JOB_TIMEOUT_MS) return;
+        await closeTab(run.job.tabId);
+        run = { ...run, job: null, index: run.index + 1, done: run.done + 1, lastJobEndedAt: now };
+        await setRun(run);
+      }
+      if (run.index >= run.items.length) {
+        await finish(run, summary(run), deps);
+        return;
+      }
+      if (run.waitingReason === "blocked" && run.waitingUntil && now < run.waitingUntil) return;
+      if (await searchesLeft() <= 0) {
+        const until = await nextSlotAt();
+        if (run.waitingUntil !== until || run.waitingReason !== "limit") {
+          await setRun({ ...run, waitingUntil: until, waitingReason: "limit" });
+          deps.notify?.();
+        }
+        return;
+      }
+      const gap = run.limited ? LIMITED_GAP_MS : GAP_MS;
+      if (now - run.lastJobEndedAt < gap) {
+        schedule(gap - (now - run.lastJobEndedAt), deps);
+        return;
+      }
+      const item = run.items[run.index];
+      const settings = await getSettings();
+      await noteSearch();
+      const tab = await chrome.tabs.create({ url: item.url, active: false });
+      const jobId = `${run.id}-${run.index}`;
+      await chrome.storage.session.set({
+        [`job:${tab.id}`]: { id: jobId, q: item.q, scrolls: 3, rank: item.rank !== false, deep: settings.deep && !run.limited }
+      });
+      await setRun({ ...run, job: { id: jobId, tabId: tab.id, startedAt: now }, current: item.label, waitingUntil: null, waitingReason: null });
+      deps.notify?.();
+    });
+  }
+  function handleJobDone(msg, deps) {
+    return locked(async () => {
+      const run = await getRun();
+      if (!run?.running || !run.job || run.job.id !== msg.jobId) return false;
+      const now = Date.now();
+      const item = run.items[run.index];
+      const tabId = run.job.tabId;
+      const blocked = typeof msg.blocked === "string" && msg.blocked ? msg.blocked : null;
+      let next = {
+        ...run,
+        job: null,
+        lastJobEndedAt: now,
+        created: run.created + (Number(msg.created) || 0),
+        updated: run.updated + (Number(msg.updated) || 0),
+        detected: run.detected + (Number(msg.detected) || 0),
+        limited: run.limited || Boolean(msg.limited) || Boolean(blocked)
+      };
+      if (blocked) {
+        if (blocked === "login" || run.blocks >= 1) {
+          await finish(next, blockedMessage(blocked), deps);
+          await closeTab(tabId);
+          return true;
+        }
+        next = { ...next, blocks: run.blocks + 1, waitingUntil: now + BLOCK_PAUSE_MS, waitingReason: "blocked" };
+        await setRun(next);
+        await closeTab(tabId);
+        deps.notify?.();
+        return true;
+      }
+      next = { ...next, index: run.index + 1, done: run.done + 1 };
+      await setRun(next);
+      await closeTab(tabId);
+      if (item.follow) await deps.touchFollow(item.follow).catch(() => {
+      });
+      if (next.index >= next.items.length) await finish(next, summary(next), deps);
+      else {
+        deps.notify?.();
+        schedule(next.limited ? LIMITED_GAP_MS : GAP_MS, deps);
+      }
+      return true;
+    });
+  }
+  function handleTabRemoved(tabId, deps) {
+    return locked(async () => {
+      const run = await getRun();
+      if (!run?.running || !run.job || run.job.tabId !== tabId) return;
+      await chrome.storage.session.remove(`job:${tabId}`).catch(() => {
+      });
+      await setRun({ ...run, job: null, index: run.index + 1, done: run.done + 1, lastJobEndedAt: Date.now() });
+      schedule(GAP_MS, deps);
+    });
   }
   return __toCommonJS(index_exports);
 })();

@@ -7,7 +7,8 @@
  * 3. Solo cuando pulsas "Guardar" los guarda en tu Chrome (y en tu plataforma,
  *    si la activaste) vía background.js.
  *
- * No hace scroll, no pagina, no hace clics ni peticiones a Meta por su cuenta.
+ * Mientras navegas tú no hace scroll, no pagina ni hace clics. Solo en las búsquedas
+ * que pide el radar (más abajo) baja la lista para que cargue más resultados.
  */
 (() => {
   if (window.__cifraRadarContent) return;
@@ -317,13 +318,25 @@
       await sleep(1000);
     }
     const scrolls = Math.max(0, Math.min(5, Number(job.scrolls) || 0));
+    // El orden por impresiones se toma de la primera tanda, antes de cargar más.
+    const firstBatch = job.q && job.rank !== false ? computeRanks() : null;
+    let stuck = 0;
     for (let i = 0; i < scrolls && !blocked && buffer.size; i++) {
+      const before = buffer.size;
       window.scrollTo(0, document.documentElement.scrollHeight);
       await sleep(3500);
+      if (buffer.size > before) continue;
+      // En una pestaña de fondo Chrome no avisa a la página de que el final de la
+      // lista está a la vista. Con «carga profunda» se le avisa, igual que si la
+      // pestaña estuviera visible; si tampoco carga más, se deja de insistir.
+      if (!job.deep || blocked || ++stuck > 2) break;
+      window.postMessage({ __cifraRadar: 1, kind: "kick" }, location.origin);
+      await sleep(4000);
+      if (buffer.size === before) break;
     }
     let res = { ok: true, created: 0, updated: 0 };
-    // El ranking solo tiene sentido en búsquedas por palabra clave.
-    jobRanks = job.q ? computeRanks() : null;
+    // El ranking solo tiene sentido en búsquedas por palabra clave sin filtros.
+    jobRanks = firstBatch;
     if (buffer.size) res = await send({ all: true });
     // La página hace varias consultas; si alguna fue limitada pero los anuncios
     // llegaron, no es un bloqueo: se avisa como «limitado» para ir más despacio.

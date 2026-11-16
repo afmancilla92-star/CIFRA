@@ -5,6 +5,8 @@
  * Chrome, sin servidor ni configuración. El explorador está en app.html.
  * Plataforma web (opcional): si la activas en el popup, cada captura también
  * se envía a tu plataforma con su URL y token.
+ * Actualización en segundo plano: la pasada diaria de búsquedas corre aquí
+ * (ver radar/web/src/ext/runner.ts), aunque la pestaña del radar esté cerrada.
  */
 importScripts("core.js");
 
@@ -50,6 +52,29 @@ async function callPlatform(method, body) {
   return data;
 }
 
+// ── Actualización en segundo plano (pasada diaria y «Actualizar») ───────────
+const R = CifraCore.runner;
+const runnerDeps = {
+  follows: async () => Array.from((await (await store()).follows()).values()).map((f) => ({ pageId: f.pageId, name: f.name })),
+  touchFollow: async (pageId) => (await store()).touchFollow(pageId, { refreshedAt: new Date().toISOString() }),
+  notify: () => chrome.runtime.sendMessage({ type: "radar:run" }).catch(() => {}),
+};
+
+// Anuncios nuevos desde la última vez que se abrió el radar: se muestran en el ícono.
+async function addBadge(n) {
+  if (!n) return;
+  const { badgeNew = 0 } = await chrome.storage.local.get("badgeNew");
+  const total = badgeNew + n;
+  await chrome.storage.local.set({ badgeNew: total });
+  chrome.action.setBadgeBackgroundColor({ color: "#0e5c56" }).catch(() => {});
+  chrome.action.setBadgeText({ text: total > 999 ? "999+" : String(total) }).catch(() => {});
+}
+
+async function clearBadge() {
+  await chrome.storage.local.set({ badgeNew: 0 });
+  chrome.action.setBadgeText({ text: "" }).catch(() => {});
+}
+
 async function saveCapture(payload) {
   const s = await settings();
   let local;
@@ -63,8 +88,9 @@ async function saveCapture(payload) {
     const remote = await callPlatform("POST", payload);
     result.platform = remote.ok ? { ok: true, created: remote.created, updated: remote.updated } : { ok: false, error: remote.error };
   }
-  // Avisa al explorador (si está abierto) para que se actualice solo.
-  chrome.runtime.sendMessage({ type: "radar:updated" }).catch(() => {});
+  // Avisa al explorador (si está abierto) de que hay anuncios nuevos.
+  chrome.runtime.sendMessage({ type: "radar:updated", created: local.created, updated: local.updated }).catch(() => {});
+  addBadge(local.created).catch(() => {});
   return result;
 }
 
@@ -88,6 +114,27 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!msg || typeof msg.type !== "string") return;
   const fromLibrary = /^https:\/\/([a-z0-9-]+\.)?facebook\.com\/ads\/library/.test((sender.tab && sender.tab.url) || sender.url || "");
   const fromExtension = sender.id === chrome.runtime.id && !sender.tab;
+  // El radar (app.html) vive en una pestaña de la propia extensión.
+  const fromApp = sender.id === chrome.runtime.id && String(sender.url || "").startsWith(chrome.runtime.getURL(""));
+  if (msg.type === "radar:jobDone" && fromLibrary) {
+    R.handleJobDone(msg, runnerDeps);
+    return;
+  }
+  if (msg.type === "radar:runStart" && (fromApp || fromExtension)) {
+    (msg.mode === "follows" ? R.startFollowsRun(runnerDeps) : R.startFullRun("manual", runnerDeps)).then(
+      (run) => reply({ ok: Boolean(run), total: run ? run.total : 0 }),
+      (err) => reply({ ok: false, error: String((err && err.message) || err) }),
+    );
+    return true;
+  }
+  if (msg.type === "radar:runStop" && (fromApp || fromExtension)) {
+    R.stopRun(runnerDeps).then(() => reply({ ok: true }));
+    return true;
+  }
+  if (msg.type === "radar:seen" && (fromApp || fromExtension)) {
+    clearBadge().then(() => reply({ ok: true }));
+    return true;
+  }
   // La pestaña de la Biblioteca pregunta si fue abierta por el radar para una búsqueda.
   if (msg.type === "radar:whoami" && fromLibrary && sender.tab) {
     const key = `job:${sender.tab.id}`;
@@ -111,6 +158,17 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;
   }
 });
+
+// El despertador avanza la pasada y lanza la automática cada 24 horas.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === R.ALARM) R.tick(runnerDeps);
+});
+chrome.runtime.onStartup.addListener(() => R.tick(runnerDeps));
+chrome.tabs.onRemoved.addListener((tabId) => {
+  R.handleTabRemoved(tabId, runnerDeps);
+});
+// Cada vez que el service worker despierta: retoma lo pendiente.
+R.tick(runnerDeps).catch(() => {});
 
 // Al instalar por primera vez, abre el explorador con las instrucciones.
 chrome.runtime.onInstalled.addListener((details) => {
