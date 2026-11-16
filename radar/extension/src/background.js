@@ -66,7 +66,7 @@ async function addBadge(n) {
   const { badgeNew = 0 } = await chrome.storage.local.get("badgeNew");
   const total = badgeNew + n;
   await chrome.storage.local.set({ badgeNew: total });
-  chrome.action.setBadgeBackgroundColor({ color: "#0e5c56" }).catch(() => {});
+  chrome.action.setBadgeBackgroundColor({ color: "#2440e0" }).catch(() => {});
   chrome.action.setBadgeText({ text: total > 999 ? "999+" : String(total) }).catch(() => {});
 }
 

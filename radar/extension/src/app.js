@@ -28503,7 +28503,14 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
 
   // src/ext/studio.ts
   var MODEL = "claude-opus-5-5";
+  var FALLBACK_BETA = "server-side-fallback-2026-07-01";
   var MAX_REFS = 5;
+  var TONES = [
+    ["cercano", "Cercano", "cálido y conversacional, como le hablarías a un amigo"],
+    ["directo", "Directo", "frases cortas, al grano, sin adornos"],
+    ["profesional", "Profesional", "sobrio y confiable, con datos concretos"],
+    ["aspiracional", "Aspiracional", "inspirador, centrado en la vida que el cliente quiere"]
+  ];
   var KINDS = [
     {
       id: "curso",
@@ -28603,6 +28610,8 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
       payment: "unico",
       guarantee: "",
       bonuses: "",
+      tone: "cercano",
+      market: "",
       createdAt: now,
       updatedAt: now,
       output: null,
@@ -28611,16 +28620,18 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
     };
   }
   var S = {
-    step: 1,
     draft: newDraft(),
     products: [],
     loaded: false,
     key: null,
     keyInput: "",
     keyMessage: "",
-    generating: false,
-    error: "",
-    saved: ""
+    showKey: false,
+    showRefs: false,
+    tab: "anuncios",
+    generating: "",
+    progress: 0,
+    error: ""
   };
   var lines = (t) => t.split(/\n+/).map((x) => x.trim()).filter(Boolean);
   var cap = (t) => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
@@ -28631,13 +28642,12 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
     return `${d.price.trim()} ${d.currency}${pay && d.payment !== "unico" ? ` · ${pay.toLowerCase()}` : ""}`;
   }
   var REQUIRED = [
-    ["name", "Nombre"],
-    ["kind", "Tipo de producto"],
-    ["what", "Qué es"],
-    ["customer", "Cliente ideal"],
-    ["problem", "Problema"],
-    ["promise", "Resultado"],
-    ["price", "Precio"]
+    ["what", "qué vendes"],
+    ["kind", "tipo"],
+    ["customer", "para quién"],
+    ["problem", "problema"],
+    ["promise", "resultado"],
+    ["price", "precio"]
   ];
   function completeness(d) {
     const done2 = REQUIRED.filter(([k]) => String(d[k] ?? "").trim()).length;
@@ -28651,11 +28661,12 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
         onclick: async (e) => {
           e.stopPropagation();
           try {
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(text());
             b.lastChild.textContent = "Copiado";
           } catch {
             b.lastChild.textContent = "No se pudo copiar";
           }
+          setTimeout(() => b.lastChild.textContent = label, 1600);
         }
       },
       icon("copy", 13),
@@ -28663,21 +28674,34 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
     );
     return b;
   }
+  var saveTimer;
   async function persist(host) {
+    clearTimeout(saveTimer);
     S.draft.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
     await host.store().saveProduct({ ...S.draft });
     S.products = await loadProducts(host);
   }
+  function persistSoon(host) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => void persist(host).catch(() => {
+    }), 700);
+  }
   async function loadProducts(host) {
     const list = await host.store().products();
     return list.filter((p) => p && typeof p.id === "string").sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+  }
+  var hasContent = (d) => Boolean(d.name.trim() || d.what.trim() || d.customer.trim() || d.output);
+  function addReference(ad) {
+    if (!S.draft.refs.includes(ad.id)) S.draft.refs = [...S.draft.refs, ad.id].slice(-MAX_REFS);
+    if (!S.draft.niche && ad.nicheList[0]) S.draft.niche = ad.nicheList[0];
+    S.showRefs = true;
   }
   var str2 = { type: "string" };
   var strList = { type: "array", items: str2 };
   var SCHEMA = {
     type: "object",
     additionalProperties: false,
-    required: ["oferta", "anuncios", "landing", "objeciones"],
+    required: ["oferta", "anuncios", "ganchos", "landing", "objeciones"],
     properties: {
       oferta: {
         type: "object",
@@ -28694,6 +28718,7 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
           properties: { angulo: str2, gancho: str2, texto: str2, cta: str2, idea_creativa: str2 }
         }
       },
+      ganchos: strList,
       landing: {
         type: "array",
         items: { type: "object", additionalProperties: false, required: ["seccion", "contenido"], properties: { seccion: str2, contenido: str2 } }
@@ -28704,22 +28729,24 @@ Please migrate to a newer model. Visit https://docs.anthropic.com/en/docs/resour
       }
     }
   };
+  var HOOKS_SCHEMA = { type: "object", additionalProperties: false, required: ["ganchos"], properties: { ganchos: strList } };
   var SYSTEM = `Eres un estratega de marketing de respuesta directa que ayuda a emprendedores de Latinoamérica a armar ofertas y anuncios para Facebook e Instagram.
 
 Reglas:
 - No inventes testimonios, cifras de ventas, cantidad de clientes o alumnos, resultados garantizados, certificaciones, premios ni escasez falsa. Si falta un dato, escribe una sugerencia entre corchetes para que el usuario la complete, por ejemplo [cantidad de módulos].
 - No copies frases, nombres ni marcas de los anuncios de referencia: úsalos solo para entender ángulos, ganchos y estructura.
 - Respeta las políticas publicitarias de Meta: nada de afirmaciones médicas, financieras o de pérdida de peso garantizadas, ni frases que aludan a características personales del lector (por ejemplo «¿Tienes diabetes?»).
-- Sé concreto: ganchos de menos de 12 palabras y textos de anuncio de 40 a 120 palabras.
-- Escribe en español latinoamericano neutro, con tuteo.`;
+- Sé concreto: ganchos de menos de 12 palabras y textos de anuncio de 40 a 120 palabras, listos para pegar.
+- Escribe en español latinoamericano, con tuteo, en el tono que se indique.`;
   function refText(r) {
     return truncate([r.title, r.body, r.linkDescription].filter(Boolean).join(" — "), 600);
   }
-  function buildPrompt(d, refs) {
+  function productBrief(d, refs) {
     const k = kindOf(d);
+    const tone = TONES.find(([id]) => id === d.tone) ?? TONES[0];
     const out = [
       "Datos del producto (los escribió el usuario y pueden estar incompletos):",
-      `- Nombre: ${d.name || "(sin definir)"}`,
+      `- Nombre: ${d.name || "(sin definir: propón uno)"}`,
       `- Tipo: ${k?.label ?? "(sin definir)"}`,
       `- Qué es: ${d.what || "(sin definir)"}`,
       `- Cliente ideal: ${d.customer || "(sin definir)"}`,
@@ -28728,7 +28755,9 @@ Reglas:
       `- Nicho: ${d.niche ? nicheLabel(d.niche) : "(sin definir)"}`,
       `- Precio: ${priceText(d) || "(sin definir)"}`,
       `- Garantía: ${d.guarantee || "(sin definir)"}`,
-      `- Bonos: ${lines(d.bonuses).join("; ") || "(ninguno)"}`
+      `- Bonos: ${lines(d.bonuses).join("; ") || "(ninguno)"}`,
+      `- Mercado: ${d.market || "Latinoamérica"}`,
+      `- Tono: ${tone[1]} (${tone[2]})`
     ];
     if (refs.length) {
       out.push(
@@ -28738,17 +28767,23 @@ Reglas:
 ${refText(r)}`)
       );
     }
-    out.push(
-      "",
-      "Entrega: la oferta; exactamente 3 anuncios con ángulos distintos (dolor, resultado y oferta), cada uno con su idea creativa (imagen o video); la estructura de la landing por secciones, con lo que debe decir cada una; y de 4 a 6 objeciones frecuentes con su respuesta."
-    );
     return out.join("\n");
+  }
+  function buildPrompt(d, refs) {
+    return `${productBrief(d, refs)}
+
+Entrega:
+- la oferta;
+- exactamente 3 anuncios con ángulos distintos (dolor, resultado y oferta), cada uno con su idea creativa (imagen o video);
+- 10 ganchos adicionales, distintos entre sí y de los anuncios, para la primera línea o los primeros 3 segundos de un video;
+- la estructura de la landing por secciones, con lo que debe decir cada una;
+- de 4 a 6 objeciones frecuentes con su respuesta.`;
   }
   function sanitize(raw) {
     const o = raw ?? {};
     const s = (v) => typeof v === "string" ? v : "";
     const arr = (v, map) => Array.isArray(v) ? v.filter((x) => x && typeof x === "object").map((x) => map(x)) : [];
-    const sl = (v) => Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+    const sl = (v) => Array.isArray(v) ? v.filter((x) => typeof x === "string" && Boolean(x.trim())) : [];
     const of = o.oferta ?? {};
     return {
       oferta: {
@@ -28762,26 +28797,86 @@ ${refText(r)}`)
         cta: s(of.cta)
       },
       anuncios: arr(o.anuncios, (x) => ({ angulo: s(x.angulo), gancho: s(x.gancho), texto: s(x.texto), cta: s(x.cta), idea_creativa: s(x.idea_creativa) })),
+      ganchos: sl(o.ganchos),
       landing: arr(o.landing, (x) => ({ seccion: s(x.seccion), contenido: s(x.contenido) })),
       objeciones: arr(o.objeciones, (x) => ({ objecion: s(x.objecion), respuesta: s(x.respuesta) }))
     };
   }
-  async function generateWithClaude(d, refs, apiKey, fetchImpl) {
-    const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 2, ...fetchImpl ? { fetch: fetchImpl } : {} });
-    const msg = await client.beta.messages.create({
-      model: MODEL,
-      max_tokens: 8e3,
-      // Si el modelo no está disponible, Anthropic responde con uno de respaldo.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      system: SYSTEM,
-      output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
-      messages: [{ role: "user", content: buildPrompt(d, refs) }]
-    });
-    if (msg.stop_reason === "refusal") throw new Error("Claude no generó este contenido. Revisa que el producto cumpla las políticas publicitarias de Meta.");
-    if (msg.stop_reason === "max_tokens") throw new Error("La respuesta quedó incompleta. Vuelve a intentarlo.");
-    const text = msg.content.map((b) => b.type === "text" ? b.text : "").join("");
-    return sanitize(JSON.parse(text));
+  function parseJson(text) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      const a = text.indexOf("{");
+      const b = text.lastIndexOf("}");
+      if (a === -1 || b <= a) throw new SyntaxError("respuesta sin JSON");
+      return JSON.parse(text.slice(a, b + 1));
+    }
+  }
+  async function askClaude(o) {
+    const client = new Anthropic({ apiKey: o.apiKey, dangerouslyAllowBrowser: true, maxRetries: 2, ...o.fetchImpl ? { fetch: o.fetchImpl } : {} });
+    const base = { model: MODEL, max_tokens: 64e3, system: SYSTEM };
+    const format = { type: "json_schema", schema: o.schema };
+    let chars = 0;
+    const watch = (stream2) => {
+      stream2.on("text", (delta) => {
+        chars += delta.length;
+        o.onText?.(chars);
+      });
+      return stream2;
+    };
+    const attempts = [
+      // 1) Con modelo de respaldo: si el principal declina o no está disponible, Anthropic responde con otro.
+      () => watch(
+        client.beta.messages.stream({
+          ...base,
+          betas: [FALLBACK_BETA],
+          fallbacks: "default",
+          output_config: { effort: o.effort, format },
+          messages: [{ role: "user", content: o.prompt }]
+        })
+      ).finalMessage(),
+      // 2) Sin respaldo del servidor.
+      () => watch(client.messages.stream({ ...base, output_config: { effort: o.effort, format }, messages: [{ role: "user", content: o.prompt }] })).finalMessage(),
+      // 3) Sin formato estructurado: se pide el JSON en el propio mensaje.
+      () => watch(
+        client.messages.stream({
+          ...base,
+          output_config: { effort: o.effort },
+          messages: [{ role: "user", content: `${o.prompt}
+
+Responde únicamente con un objeto JSON válido que siga este esquema, sin texto adicional:
+${JSON.stringify(o.schema)}` }]
+        })
+      ).finalMessage()
+    ];
+    let lastError;
+    for (const attempt of attempts) {
+      chars = 0;
+      try {
+        const msg = await attempt();
+        if (msg.stop_reason === "refusal") throw new Error("Claude no generó este contenido. Revisa que el producto cumpla las políticas publicitarias de Meta.");
+        if (msg.stop_reason === "max_tokens") throw new Error("La respuesta quedó incompleta. Vuelve a intentarlo.");
+        const text = msg.content.map((b) => b.type === "text" ? b.text ?? "" : "").join("");
+        return parseJson(text);
+      } catch (e) {
+        lastError = e;
+        if (!(e instanceof Anthropic.BadRequestError)) throw e;
+      }
+    }
+    throw lastError;
+  }
+  async function generateWithClaude(d, refs, apiKey, fetchImpl, onText) {
+    return sanitize(await askClaude({ apiKey, prompt: buildPrompt(d, refs), schema: SCHEMA, effort: "medium", onText, fetchImpl }));
+  }
+  async function moreHooksWithClaude(d, refs, existing, apiKey, fetchImpl, onText) {
+    const prompt = `${productBrief(d, refs)}
+
+Ganchos que ya tiene (no los repitas ni los parafrasees):
+${existing.map((x) => `- ${x}`).join("\n") || "(ninguno)"}
+
+Escribe 10 ganchos nuevos para la primera línea de un anuncio o los primeros 3 segundos de un video. Varía el enfoque: pregunta, dato concreto, error común, contraste, historia breve, objeción, curiosidad.`;
+    const raw = await askClaude({ apiKey, prompt, schema: HOOKS_SCHEMA, effort: "low", onText, fetchImpl });
+    return Array.isArray(raw?.ganchos) ? raw.ganchos.filter((x) => typeof x === "string" && Boolean(x.trim())) : [];
   }
   function errorText2(e) {
     if (e instanceof Anthropic.AuthenticationError) return "La clave de Anthropic no es válida. Revísala o crea una nueva en console.anthropic.com → API Keys.";
@@ -28789,7 +28884,9 @@ ${refText(r)}`)
     if (e instanceof Anthropic.RateLimitError) return "Llegaste al límite de uso de tu cuenta de Anthropic. Espera un momento y vuelve a intentarlo.";
     if (e instanceof Anthropic.APIConnectionError) return "No se pudo conectar con Anthropic. Revisa tu conexión a internet.";
     if (e instanceof Anthropic.APIError) {
-      return /credit|billing|balance/i.test(e.message) ? "Tu cuenta de Anthropic no tiene saldo. Agrega créditos en console.anthropic.com → Billing." : `Anthropic respondió con un error (${e.status ?? "sin código"}). Vuelve a intentarlo en un momento.`;
+      if (e.type === "billing_error") return "Tu cuenta de Anthropic no tiene saldo. Agrega créditos en console.anthropic.com → Billing.";
+      if (e.type === "overloaded_error") return "Anthropic está con mucha demanda en este momento. Vuelve a intentarlo en un minuto.";
+      return `Anthropic respondió con un error (${e.status ?? "sin código"}). Vuelve a intentarlo en un momento.`;
     }
     if (e instanceof SyntaxError) return "La respuesta no llegó en el formato esperado. Vuelve a intentarlo.";
     return e?.message ?? String(e);
@@ -28869,6 +28966,16 @@ ${k?.time ?? ""}`.trim(),
         { seccion: "Precio y botón", contenido: `${price}. Botón: ${cta}. Repite el botón al final de la página.` },
         { seccion: "Preguntas frecuentes", contenido: "Responde las objeciones de abajo, con frases cortas." }
       ],
+      ganchos: [
+        `Para ${who} que ${problem}`,
+        `Cómo ${promise}`,
+        `${name}: ${what.charAt(0).toLowerCase() + what.slice(1)}`,
+        `Lo que nadie te explica sobre ${promise}`,
+        `Deja de pelear con esto: ${problem}`,
+        `${cap(promise)}, paso a paso`,
+        `${name} por ${price}`,
+        `Antes de rendirte con ${promise}, mira esto`
+      ],
       objeciones: [
         { objecion: "Es muy caro", respuesta: `Compáralo con lo que cuesta seguir con «${problem}». ${d.payment === "cuotas" ? "Recuerda que se puede pagar en cuotas." : "Considera ofrecer pago en cuotas."}` },
         { objecion: "No tengo tiempo", respuesta: k?.time ?? "Explica cuánto tiempo requiere de verdad y cómo se adapta a su rutina." },
@@ -28898,6 +29005,9 @@ ${a.texto}
 Botón: ${a.cta}
 Idea creativa: ${a.idea_creativa}
 `),
+      o.ganchos.length ? `GANCHOS
+${o.ganchos.map((x) => `- ${x}`).join("\n")}
+` : "",
       "LANDING",
       ...o.landing.map((s, i) => `${i + 1}. ${s.seccion}: ${s.contenido}`),
       "",
@@ -28905,45 +29015,97 @@ Idea creativa: ${a.idea_creativa}
       ...o.objeciones.map((x) => `- ${x.objecion}: ${x.respuesta}`)
     ].filter((x) => x !== "").join("\n");
   }
+  function showProgress(chars) {
+    S.progress = chars;
+    const el = document.getElementById("studio-progress");
+    if (el) el.textContent = chars ? `${chars.toLocaleString("es")} caracteres` : "pensando…";
+  }
   async function generate2(host, useAi) {
     if (S.generating) return;
     S.error = "";
-    const refs = host.favorites().filter((r) => S.draft.refs.includes(r.id)).slice(0, MAX_REFS);
-    if (!useAi) {
-      S.draft.output = templateDraft(S.draft);
-      S.draft.outputSource = "plantilla";
+    const refs = host.ads(S.draft.refs).slice(0, MAX_REFS);
+    const done2 = async (output, source) => {
+      S.draft.output = output;
+      S.draft.outputSource = source;
       S.draft.outputAt = (/* @__PURE__ */ new Date()).toISOString();
+      if (!S.draft.name.trim() && output.oferta.titulo && !output.oferta.titulo.startsWith("[")) S.draft.name = output.oferta.titulo;
+      S.tab = "anuncios";
+      await persist(host);
+    };
+    if (!useAi) {
+      await done2(templateDraft(S.draft), "plantilla");
+      host.rerender();
+      return;
+    }
+    if (!S.key) {
+      S.showKey = true;
+      host.rerender();
+      return;
+    }
+    S.generating = "todo";
+    S.progress = 0;
+    host.rerender();
+    try {
+      await done2(await generateWithClaude(S.draft, refs, S.key, void 0, showProgress), "ia");
+    } catch (e) {
+      S.error = errorText2(e);
+    } finally {
+      S.generating = "";
+      host.rerender();
+    }
+  }
+  async function moreHooks(host) {
+    const o = S.draft.output;
+    if (!o || S.generating) return;
+    S.error = "";
+    if (!S.key) {
+      const extra = templateDraft(S.draft).ganchos.filter((g) => !o.ganchos.includes(g));
+      if (extra.length) o.ganchos.push(...extra);
+      else S.error = "Con plantillas no hay más variaciones. Guarda tu clave de Anthropic para que Claude escriba ganchos nuevos.";
       await persist(host);
       host.rerender();
       return;
     }
-    if (!S.key) return;
-    S.generating = true;
+    S.generating = "ganchos";
+    S.progress = 0;
     host.rerender();
     try {
-      S.draft.output = await generateWithClaude(S.draft, refs, S.key);
-      S.draft.outputSource = "ia";
-      S.draft.outputAt = (/* @__PURE__ */ new Date()).toISOString();
+      const refs = host.ads(S.draft.refs).slice(0, MAX_REFS);
+      const fresh = await moreHooksWithClaude(S.draft, refs, [...o.ganchos, ...o.anuncios.map((a) => a.gancho)], S.key, void 0, showProgress);
+      o.ganchos.push(...fresh.filter((g) => !o.ganchos.includes(g)));
       await persist(host);
     } catch (e) {
       S.error = errorText2(e);
     } finally {
-      S.generating = false;
+      S.generating = "";
       host.rerender();
     }
   }
-  function input(field2, placeholder2, host, multiline = false, rows = 3) {
-    const attrs = { class: multiline ? "s-textarea" : "s-input", placeholder: placeholder2, "data-key": `studio-${field2}`, "aria-label": placeholder2 };
-    const el = multiline ? h("textarea", { ...attrs, rows }, S.draft[field2]) : h("input", { ...attrs, type: "text", value: S.draft[field2] });
+  function refreshMeter() {
+    document.getElementById("studio-meter")?.replaceWith(meter());
+  }
+  function meter() {
+    const pct = completeness(S.draft);
+    const missing = REQUIRED.filter(([k]) => !String(S.draft[k] ?? "").trim()).map(([, l]) => l);
+    return h(
+      "div",
+      { class: "s-meter", id: "studio-meter" },
+      h("div", { class: "bar" }, h("i", { style: `width:${pct}%` })),
+      h("small", { class: "muted" }, pct === 100 ? "Completo. Entre más detalle, mejor el resultado." : `Falta: ${missing.join(", ")}. Puedes generar igual: lo que falte saldrá entre [corchetes].`)
+    );
+  }
+  function input(field2, placeholder2, host, rows = 0) {
+    const attrs = { class: rows ? "s-textarea" : "s-input", placeholder: placeholder2, "data-key": `studio-${field2}`, "aria-label": placeholder2 };
+    const el = rows ? h("textarea", { ...attrs, rows }, S.draft[field2]) : h("input", { ...attrs, type: "text", value: S.draft[field2] });
     el.addEventListener("input", () => {
       S.draft[field2] = el.value;
-      refreshPreview(host);
+      refreshMeter();
+      persistSoon(host);
     });
-    el.addEventListener("change", () => void persist(host));
     return el;
   }
-  function q(label, hint, control) {
-    return h("label", { class: "s-q" }, h("span", { class: "s-label" }, label), hint ? h("small", { class: "muted" }, hint) : null, control);
+  function q(label, control, hint) {
+    return h("label", { class: "s-q" }, h("span", { class: "s-label" }, label), control, hint ? h("small", { class: "muted" }, hint) : null);
   }
   function select(value, options, onChange, label) {
     const s = h("select", { class: "s-input", "aria-label": label }, options.map(([v, l]) => h("option", { value: v, selected: v === value }, l)));
@@ -28951,159 +29113,64 @@ Idea creativa: ${a.idea_creativa}
     s.addEventListener("change", () => onChange(s.value));
     return s;
   }
-  function stepOne(host) {
-    return h(
-      "div",
-      { class: "s-step" },
-      q("¿Cómo se llama tu producto?", "Puedes cambiarlo después.", input("name", "Ej.: Método Clientes en 30 días", host)),
-      h(
-        "div",
-        { class: "s-q" },
-        h("span", { class: "s-label" }, "¿Qué recibe tu comprador?"),
-        h(
-          "div",
-          { class: "kind-grid" },
-          KINDS.map(
-            (k) => h(
-              "button",
-              {
-                class: `kind${S.draft.kind === k.id ? " on" : ""}`,
-                "aria-pressed": String(S.draft.kind === k.id),
-                onclick: () => {
-                  S.draft.kind = k.id;
-                  void persist(host);
-                  host.rerender();
-                }
-              },
-              h("b", null, k.label),
-              h("small", null, k.hint)
-            )
-          )
-        )
-      ),
-      q("¿Qué es, en una frase?", "Lo que es y cómo se entrega, sin adornos.", input("what", "Ej.: Un curso en video de 6 módulos para vender por Instagram", host, true, 2))
-    );
+  function editable(value, onChange, host, cls = "") {
+    const rows = Math.min(16, Math.max(1, value.split("\n").reduce((n, line) => n + Math.max(1, Math.ceil(line.length / 58)), 0)));
+    const el = h("textarea", { class: `s-edit ${cls}`, rows, "aria-label": "Texto editable" }, value);
+    el.addEventListener("input", () => {
+      onChange(el.value);
+      persistSoon(host);
+    });
+    return el;
   }
-  function stepTwo(host) {
-    const favs = host.favorites();
-    return h(
-      "div",
-      { class: "s-step" },
-      q("¿Para quién es?", "Tu cliente ideal: quién es y en qué momento está.", input("customer", "Ej.: emprendedoras que venden por redes y recién empiezan", host, true, 2)),
-      q("¿Qué problema le resuelve?", "Con sus palabras, como lo diría tu cliente.", input("problem", "Ej.: publican todos los días y no consiguen clientes", host, true, 2)),
-      q("¿Qué resultado le ayuda a lograr?", "Realista y comprobable: nada de resultados garantizados.", input("promise", "Ej.: conseguir sus primeras ventas con un método simple", host, true, 2)),
-      q(
-        "Nicho",
-        null,
-        select(
-          S.draft.niche,
-          [["", "Elige un nicho"], ...NICHES.map((n) => [n.id, n.label])],
-          (v) => {
-            S.draft.niche = v;
-            void persist(host);
-            refreshPreview(host);
-          },
-          "Nicho"
-        )
-      ),
-      h(
-        "div",
-        { class: "s-q" },
-        h("span", { class: "s-label" }, `Anuncios de referencia (hasta ${MAX_REFS})`),
-        h("small", { class: "muted" }, "Elige anuncios de tus favoritos para inspirar los ángulos. No se copian sus textos."),
-        favs.length ? h(
-          "div",
-          { class: "refs" },
-          favs.slice(0, 40).map((r) => {
-            const on = S.draft.refs.includes(r.id);
-            return h(
-              "button",
-              {
-                class: `ref${on ? " on" : ""}`,
-                "aria-pressed": String(on),
-                onclick: () => {
-                  S.draft.refs = on ? S.draft.refs.filter((x) => x !== r.id) : [...S.draft.refs, r.id].slice(-MAX_REFS);
-                  void persist(host);
-                  host.rerender();
-                }
-              },
-              h("span", { class: "ref-check" }, on ? "✓" : ""),
-              h("span", { class: "grow" }, h("b", null, r.pageName), h("small", { class: "muted block" }, truncate(r.title || r.body || "Sin texto", 90))),
-              h("small", { class: "muted" }, `${r.days ?? "—"} d · ${r.copies}×`)
-            );
-          })
-        ) : h("p", { class: "muted small" }, "Aún no tienes favoritos: guarda anuncios con ♥ para usarlos aquí.")
-      )
-    );
-  }
-  function stepThree(host) {
-    return h(
-      "div",
-      { class: "s-step" },
-      h(
-        "div",
-        { class: "s-row" },
-        q("Precio", null, input("price", "Ej.: 149.900", host)),
-        q(
-          "Moneda",
-          null,
-          select(S.draft.currency, CURRENCIES.map((c) => [c, c]), (v) => {
-            S.draft.currency = v;
-            void persist(host);
-            refreshPreview(host);
-          }, "Moneda")
-        ),
-        q(
-          "Forma de pago",
-          null,
-          select(S.draft.payment, PAYMENTS, (v) => {
-            S.draft.payment = v;
-            void persist(host);
-            refreshPreview(host);
-          }, "Forma de pago")
-        )
-      ),
-      q("Garantía", "Solo la que de verdad vas a cumplir.", input("guarantee", "Ej.: 7 días de devolución sin preguntas", host)),
-      q("Bonos", "Uno por línea.", input("bonuses", "Ej.: Plantillas de mensajes para WhatsApp", host, true, 3))
-    );
-  }
-  function previewRow(label, value) {
-    return h("div", { class: "p-row" }, h("small", null, label), value && value.trim() ? h("span", null, value) : h("span", { class: "muted" }, "—"));
-  }
-  function previewBlock() {
+  function refsBlock(host) {
     const d = S.draft;
-    const pct = completeness(d);
-    const missing = REQUIRED.filter(([k]) => !String(d[k] ?? "").trim()).map(([, l]) => l);
+    const chosen = host.ads(d.refs);
+    const favs = host.favorites();
+    const toggle = (id) => {
+      d.refs = d.refs.includes(id) ? d.refs.filter((x) => x !== id) : [...d.refs, id].slice(-MAX_REFS);
+      void persist(host);
+      host.rerender();
+    };
     return h(
-      "aside",
-      { class: "card pad s-preview", id: "studio-preview" },
-      h("div", { class: "eyebrow" }, "La base de tu producto"),
-      h("h3", null, d.name.trim() || "Tu producto"),
-      h("div", { class: "bar" }, h("i", { style: `width:${pct}%` })),
-      h("small", { class: "muted" }, pct === 100 ? "Completo: listo para generar." : `${pct}% · falta: ${missing.join(", ")}`),
-      previewRow("Tipo", kindOf(d)?.label),
-      previewRow("Qué es", d.what),
-      previewRow("Para quién", d.customer),
-      previewRow("Problema", d.problem),
-      previewRow("Resultado", d.promise),
-      previewRow("Nicho", d.niche ? nicheLabel(d.niche) : ""),
-      previewRow("Precio", priceText(d)),
-      previewRow("Garantía", d.guarantee),
-      previewRow("Bonos", lines(d.bonuses).join(" · ")),
-      d.refs.length ? previewRow("Referencias", `${d.refs.length} ${d.refs.length === 1 ? "anuncio" : "anuncios"}`) : null
+      "div",
+      { class: "s-block" },
+      h(
+        "div",
+        { class: "row between wrap" },
+        h("div", { class: "eyebrow" }, `Referencias de tu radar (${chosen.length}/${MAX_REFS})`),
+        favs.length ? h("button", { class: "link-btn", onclick: () => {
+          S.showRefs = !S.showRefs;
+          host.rerender();
+        } }, S.showRefs ? "Ocultar favoritos" : "Elegir de favoritos") : null
+      ),
+      chosen.length ? h(
+        "div",
+        { class: "chips" },
+        chosen.map((r) => h("button", { class: "chip chip-scope", title: "Quitar referencia", onclick: () => toggle(r.id) }, truncate(`${r.pageName}: ${r.title || r.body || "anuncio"}`, 48), " ×"))
+      ) : h("small", { class: "muted" }, "Opcional. Abre cualquier anuncio del radar y pulsa «Usar en Studio», o elige de tus favoritos: Claude toma sus ángulos, sin copiar el texto."),
+      S.showRefs && favs.length ? h(
+        "div",
+        { class: "refs" },
+        favs.slice(0, 40).map((r) => {
+          const on = d.refs.includes(r.id);
+          return h(
+            "button",
+            { class: `ref${on ? " on" : ""}`, "aria-pressed": String(on), onclick: () => toggle(r.id) },
+            h("span", { class: "ref-check" }, on ? "✓" : ""),
+            h("span", { class: "grow" }, h("b", null, r.pageName), h("small", { class: "muted block" }, truncate(r.title || r.body || "Sin texto", 90))),
+            h("small", { class: "muted" }, `${r.days ?? "—"} d · ${r.copies}×`)
+          );
+        })
+      ) : null
     );
-  }
-  function refreshPreview(host) {
-    void host;
-    document.getElementById("studio-preview")?.replaceWith(previewBlock());
   }
   function keyPanel(host) {
     if (S.key) {
       return h(
         "div",
         { class: "key-panel ok" },
-        icon("sparkle", 15),
-        h("span", null, `Clave de Anthropic guardada en este Chrome (termina en …${S.key.slice(-4)}).`),
+        icon("sparkle", 14),
+        h("span", null, `IA activada: clave de Anthropic guardada en este Chrome (…${S.key.slice(-4)}).`),
         h(
           "button",
           {
@@ -29116,8 +29183,18 @@ Idea creativa: ${a.idea_creativa}
               host.rerender();
             }
           },
-          "Quitar clave"
+          "Quitar"
         )
+      );
+    }
+    if (!S.showKey) {
+      return h(
+        "button",
+        { class: "link-btn s-key-link", onclick: () => {
+          S.showKey = true;
+          host.rerender();
+        } },
+        "¿Quieres que lo escriba Claude? Guarda tu clave de Anthropic"
       );
     }
     const el = h("input", { type: "password", class: "s-input", placeholder: "sk-ant-…", value: S.keyInput, autocomplete: "off", "data-key": "studio-key", "aria-label": "Clave de Anthropic" });
@@ -29133,7 +29210,7 @@ Idea creativa: ${a.idea_creativa}
       });
       S.key = k;
       S.keyInput = "";
-      S.keyMessage = "Clave guardada solo en este Chrome.";
+      S.keyMessage = "";
       host.rerender();
     };
     el.addEventListener("keydown", (e) => e.key === "Enter" && void save());
@@ -29144,71 +29221,224 @@ Idea creativa: ${a.idea_creativa}
       h(
         "small",
         { class: "muted" },
-        "Para generar con IA necesitas tu propia clave de Anthropic: créala en console.anthropic.com → API Keys → Create Key (con saldo en Billing). Se guarda solo en este Chrome y se envía únicamente a Anthropic cuando generas."
+        "Créala en console.anthropic.com → API Keys → Create Key (con saldo en Billing). Se guarda solo en este Chrome y se envía únicamente a Anthropic cuando generas."
+      ),
+      S.keyMessage ? h("small", { class: "s-key-msg" }, S.keyMessage) : null
+    );
+  }
+  function formView(host) {
+    const d = S.draft;
+    const busy2 = Boolean(S.generating);
+    const set = (patch) => {
+      Object.assign(d, patch);
+      void persist(host);
+      host.rerender();
+    };
+    return h(
+      "section",
+      { class: "card pad s-form" },
+      h(
+        "div",
+        { class: "s-block" },
+        h("div", { class: "eyebrow" }, "1 · Lo esencial"),
+        q("¿Qué vendes?", input("what", "Ej.: Un curso en video de 6 módulos para vender por Instagram", host, 2), "Qué es y cómo se entrega, sin adornos."),
+        h(
+          "div",
+          { class: "kind-chips", role: "group", "aria-label": "Tipo de producto" },
+          KINDS.map((k) => h("button", { class: `chip chip-btn${d.kind === k.id ? " on" : ""}`, "aria-pressed": String(d.kind === k.id), title: k.hint, onclick: () => set({ kind: d.kind === k.id ? "" : k.id }) }, k.label))
+        ),
+        h(
+          "div",
+          { class: "s-row" },
+          q("Nombre", input("name", "Si no tienes, Claude propone uno", host)),
+          q("Precio", input("price", "Ej.: 149.900", host)),
+          q("Moneda", select(d.currency, CURRENCIES.map((c) => [c, c]), (v) => set({ currency: v }), "Moneda"))
+        )
+      ),
+      h(
+        "div",
+        { class: "s-block" },
+        h("div", { class: "eyebrow" }, "2 · A quién y para qué"),
+        q("¿Para quién es?", input("customer", "Ej.: emprendedoras que venden por redes y recién empiezan", host, 2)),
+        q("¿Qué problema le resuelve?", input("problem", "Ej.: publican todos los días y no consiguen clientes", host, 2), "Con las palabras de tu cliente."),
+        q("¿Qué resultado le ayuda a lograr?", input("promise", "Ej.: conseguir sus primeras ventas con un método simple", host, 2), "Realista y comprobable: nada de resultados garantizados.")
+      ),
+      h(
+        "details",
+        { class: "s-more" },
+        h("summary", null, "Más opciones: nicho, tono, mercado, garantía y bonos"),
+        h(
+          "div",
+          { class: "s-row" },
+          q("Nicho", select(d.niche, [["", "Sin definir"], ...NICHES.map((n) => [n.id, n.label])], (v) => set({ niche: v }), "Nicho")),
+          q("Tono", select(d.tone, TONES.map(([id, label]) => [id, label]), (v) => set({ tone: v }), "Tono")),
+          q("Mercado", input("market", "Ej.: Colombia", host))
+        ),
+        h(
+          "div",
+          { class: "s-row" },
+          q("Garantía", input("guarantee", "Ej.: 7 días de devolución", host), "Solo la que vas a cumplir."),
+          q("Forma de pago", select(d.payment, PAYMENTS, (v) => set({ payment: v }), "Forma de pago"))
+        ),
+        q("Bonos (uno por línea)", input("bonuses", "Ej.: Plantillas de mensajes para WhatsApp", host, 2))
+      ),
+      refsBlock(host),
+      h(
+        "div",
+        { class: "s-actions" },
+        meter(),
+        h(
+          "div",
+          { class: "row wrap" },
+          h(
+            "button",
+            { class: "btn btn-primary btn-lg", disabled: busy2, onclick: () => void generate2(host, true), title: S.key ? "" : "Necesita tu clave de Anthropic" },
+            S.generating === "todo" ? h("span", { class: "spinner" }) : icon("sparkle", 16),
+            S.generating === "todo" ? "Claude está escribiendo…" : d.output ? "Regenerar con IA" : "Generar con IA"
+          ),
+          S.generating === "todo" ? h("small", { class: "muted", id: "studio-progress" }, "pensando…") : null,
+          h("button", { class: "btn", disabled: busy2, onclick: () => void generate2(host, false) }, "Borrador rápido sin IA")
+        ),
+        keyPanel(host),
+        !S.key && S.keyMessage && !S.showKey ? h("small", { class: "muted" }, S.keyMessage) : null,
+        S.error ? h("p", { class: "warn" }, S.error) : null
       )
     );
   }
-  function outputView(d) {
-    const o = d.output;
+  function emptyOutput() {
     return h(
-      "section",
-      { class: "stack s-output" },
+      "div",
+      { class: "card pad s-empty" },
+      h("div", { class: "hero-icon" }, icon("sparkle", 30)),
+      h("h2", null, "Tu oferta y tus anuncios, en un minuto"),
+      h("p", { class: "muted" }, "Describe lo esencial a la izquierda y genera. Vas a recibir:"),
+      h(
+        "ul",
+        { class: "s-list" },
+        h("li", null, h("b", null, "3 anuncios"), " listos para pegar, con ángulos distintos y su idea creativa."),
+        h("li", null, h("b", null, "10 ganchos"), " para la primera línea o los primeros segundos del video."),
+        h("li", null, h("b", null, "La oferta"), ": promesa, qué incluye, bonos, garantía y botón."),
+        h("li", null, h("b", null, "La landing"), " por secciones y las ", h("b", null, "objeciones"), " con su respuesta.")
+      ),
+      h("small", { class: "muted" }, "Todo se puede editar, copiar y descargar. Cifra no inventa testimonios, cifras ni resultados.")
+    );
+  }
+  function outputView(host, d) {
+    const o = d.output;
+    const tabs = [
+      ["anuncios", `Anuncios (${o.anuncios.length})`],
+      ["ganchos", `Ganchos (${o.ganchos.length})`],
+      ["oferta", "Oferta"],
+      ["landing", "Landing"],
+      ["objeciones", "Objeciones"]
+    ];
+    const listEdit = (items, set) => editable(items.join("\n"), (v) => set(lines(v)), host);
+    let body;
+    if (S.tab === "anuncios") {
+      body = h(
+        "div",
+        { class: "s-ads" },
+        o.anuncios.map(
+          (a, i) => h(
+            "article",
+            { class: "out-ad" },
+            h("div", { class: "row between" }, h("div", { class: "eyebrow" }, `Anuncio ${i + 1} · ${a.angulo}`), copyBtn(() => `${a.gancho}
+
+${a.texto}`, "Copiar")),
+            editable(a.gancho, (v) => a.gancho = v, host, "s-edit-strong"),
+            editable(a.texto, (v) => a.texto = v, host),
+            h("div", { class: "chips" }, chip(`Botón: ${a.cta}`, "chip-accent")),
+            h("p", { class: "muted small" }, h("b", null, "Idea creativa: "), a.idea_creativa)
+          )
+        )
+      );
+    } else if (S.tab === "ganchos") {
+      body = h(
+        "div",
+        { class: "stack" },
+        o.ganchos.length ? h(
+          "ol",
+          { class: "hook-list" },
+          o.ganchos.map((g, i) => h("li", null, editable(g, (v) => o.ganchos[i] = v, host), copyBtn(() => o.ganchos[i] ?? "", "Copiar")))
+        ) : h("p", { class: "muted" }, "Aún no hay ganchos adicionales."),
+        h(
+          "div",
+          { class: "row wrap" },
+          h(
+            "button",
+            { class: "btn", disabled: Boolean(S.generating), onclick: () => void moreHooks(host) },
+            S.generating === "ganchos" ? h("span", { class: "spinner" }) : icon("plus", 14),
+            S.generating === "ganchos" ? "Escribiendo ganchos…" : S.key ? "10 ganchos más con IA" : "Más ganchos"
+          ),
+          S.generating === "ganchos" ? h("small", { class: "muted", id: "studio-progress" }, "pensando…") : null
+        )
+      );
+    } else if (S.tab === "oferta") {
+      body = h(
+        "div",
+        { class: "offer" },
+        q("Título", editable(o.oferta.titulo, (v) => o.oferta.titulo = v, host, "s-edit-title")),
+        q("Promesa", editable(o.oferta.promesa, (v) => o.oferta.promesa = v, host, "s-edit-strong")),
+        q("Para quién", editable(o.oferta.para_quien, (v) => o.oferta.para_quien = v, host)),
+        h(
+          "div",
+          { class: "offer-cols" },
+          q("Incluye (uno por línea)", listEdit(o.oferta.incluye, (v) => o.oferta.incluye = v)),
+          q("Bonos (uno por línea)", listEdit(o.oferta.bonos, (v) => o.oferta.bonos = v))
+        ),
+        h(
+          "div",
+          { class: "s-row" },
+          q("Precio", editable(o.oferta.precio, (v) => o.oferta.precio = v, host)),
+          q("Garantía", editable(o.oferta.garantia, (v) => o.oferta.garantia = v, host)),
+          q("Botón", editable(o.oferta.cta, (v) => o.oferta.cta = v, host))
+        )
+      );
+    } else if (S.tab === "landing") {
+      body = h("ol", { class: "steps" }, o.landing.map((s) => h("li", null, h("b", null, s.seccion), editable(s.contenido, (v) => s.contenido = v, host))));
+    } else {
+      body = h("dl", { class: "objections" }, o.objeciones.map((x) => [h("dt", null, x.objecion), h("dd", null, editable(x.respuesta, (v) => x.respuesta = v, host))]));
+    }
+    return h(
+      "div",
+      { class: "card pad s-result" },
       h(
         "div",
         { class: "row between wrap" },
         h(
           "div",
           null,
-          h("h2", null, "Tu oferta y anuncios"),
-          h(
-            "small",
-            { class: "muted" },
-            d.outputSource === "ia" ? "Generado con Claude a partir de tus datos." : "Borrador automático con plantillas: complétalo y ajústalo.",
-            " Revisa todo antes de publicar y completa lo que está entre [corchetes]."
-          )
+          h("h2", null, d.name.trim() || (o.oferta.titulo && !o.oferta.titulo.startsWith("[") ? o.oferta.titulo : "Tu material")),
+          h("small", { class: "muted" }, d.outputSource === "ia" ? "Escrito por Claude con tus datos." : "Borrador con plantillas.", " Edita lo que quieras y completa lo que está entre [corchetes].")
         ),
-        copyBtn(outputAsText(o), "Copiar todo")
-      ),
-      h(
-        "article",
-        { class: "card pad offer" },
-        h("div", { class: "eyebrow" }, "Oferta"),
-        h("h3", null, o.oferta.titulo),
-        h("p", { class: "lead-text" }, o.oferta.promesa),
-        h("p", { class: "muted" }, `Para: ${o.oferta.para_quien}`),
-        h("div", { class: "offer-cols" }, h("div", null, h("b", null, "Incluye"), h("ul", null, o.oferta.incluye.map((x) => h("li", null, x)))), o.oferta.bonos.length ? h("div", null, h("b", null, "Bonos"), h("ul", null, o.oferta.bonos.map((x) => h("li", null, x)))) : null),
-        h("div", { class: "chips" }, chip(`Precio: ${o.oferta.precio}`, "chip-price"), chip(`Garantía: ${o.oferta.garantia}`), chip(`Botón: ${o.oferta.cta}`, "chip-accent"))
-      ),
-      h(
-        "div",
-        { class: "grid" },
-        o.anuncios.map(
-          (a, i) => h(
-            "article",
-            { class: "card pad out-ad" },
-            h("div", { class: "eyebrow" }, `Anuncio ${i + 1} · ${a.angulo}`),
-            h("p", { class: "strong" }, a.gancho),
-            h("p", { class: "pre" }, a.texto),
-            h("div", { class: "chips" }, chip(`Botón: ${a.cta}`, "chip-accent")),
-            h("p", { class: "muted small" }, h("b", null, "Idea creativa: "), a.idea_creativa),
-            copyBtn(`${a.gancho}
-
-${a.texto}`, "Copiar anuncio")
+        h(
+          "div",
+          { class: "row wrap" },
+          copyBtn(() => outputAsText(o), "Copiar todo"),
+          h(
+            "button",
+            {
+              class: "btn small",
+              onclick: () => {
+                const url = URL.createObjectURL(new Blob([outputAsText(o)], { type: "text/plain;charset=utf-8" }));
+                h("a", { href: url, download: `${(d.name.trim() || "cifra-studio").replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 60)}.txt` }).click();
+                setTimeout(() => URL.revokeObjectURL(url), 2e3);
+              }
+            },
+            "Descargar .txt"
           )
         )
       ),
       h(
-        "article",
-        { class: "card pad" },
-        h("div", { class: "eyebrow" }, "Estructura de la landing"),
-        h("ol", { class: "steps" }, o.landing.map((s) => h("li", null, h("b", null, s.seccion), h("span", null, s.contenido))))
+        "div",
+        { class: "s-tabs", role: "tablist" },
+        tabs.map(([id, label]) => h("button", { class: `s-tab${S.tab === id ? " on" : ""}`, role: "tab", "aria-selected": String(S.tab === id), onclick: () => {
+          S.tab = id;
+          host.rerender();
+        } }, label))
       ),
-      h(
-        "article",
-        { class: "card pad" },
-        h("div", { class: "eyebrow" }, "Objeciones y respuestas"),
-        h("dl", { class: "objections" }, o.objeciones.map((x) => [h("dt", null, x.objecion), h("dd", null, x.respuesta)]))
-      )
+      body,
+      h("small", { class: "muted" }, "Revisa siempre el texto antes de publicarlo y cumple las políticas publicitarias de Meta.")
     );
   }
   function studioView(host) {
@@ -29217,7 +29447,7 @@ ${a.texto}`, "Copiar anuncio")
       void (async () => {
         try {
           S.products = await loadProducts(host);
-          if (S.products[0]) S.draft = { ...newDraft(), ...S.products[0] };
+          if (S.products[0] && !hasContent(S.draft) && !S.draft.refs.length) S.draft = { ...newDraft(), ...S.products[0] };
         } catch {
         }
         try {
@@ -29229,16 +29459,8 @@ ${a.texto}`, "Copiar anuncio")
       })();
     }
     const d = S.draft;
-    const steps = [
-      [1, "La base"],
-      [2, "La venta"],
-      [3, "El negocio"]
-    ];
-    const goStep = (n) => {
-      S.step = n;
-      void persist(host);
-      host.rerender();
-    };
+    if (d.output && !Array.isArray(d.output.ganchos)) d.output.ganchos = [];
+    const saved = S.products.some((p) => p.id === d.id);
     return h(
       "div",
       { class: "stack studio" },
@@ -29249,77 +29471,28 @@ ${a.texto}`, "Copiar anuncio")
           "div",
           null,
           h("h1", { class: "page-title" }, "Studio"),
-          h("p", { class: "muted lead" }, "Arma la base de tu producto y conviértela en una oferta, 3 anuncios y la estructura de tu landing, inspirándote en los anuncios que guardaste.")
+          h("p", { class: "muted lead" }, "Describe tu producto y recibe la oferta, 3 anuncios, 10 ganchos y la estructura de tu landing, con los ángulos de los anuncios que guardaste.")
         ),
         h(
           "div",
           { class: "row wrap" },
           S.products.length ? select(
             d.id,
-            [...S.products.some((p) => p.id === d.id) ? [] : [[d.id, d.name || "Producto nuevo"]], ...S.products.map((p) => [p.id, p.name || "Sin nombre"])],
+            [...saved ? [] : [[d.id, d.name || "Producto nuevo"]], ...S.products.map((p) => [p.id, p.name || "Sin nombre"])],
             (id) => {
               const p = S.products.find((x) => x.id === id);
               if (p) S.draft = { ...newDraft(), ...p };
-              S.step = 1;
               S.error = "";
               host.rerender();
             },
             "Tus productos"
           ) : null,
-          h(
-            "button",
-            {
-              class: "btn",
-              onclick: () => {
-                S.draft = newDraft();
-                S.step = 1;
-                S.error = "";
-                host.rerender();
-              }
-            },
-            icon("plus", 14),
-            "Nuevo producto"
-          )
-        )
-      ),
-      h(
-        "div",
-        { class: "studio-grid" },
-        h(
-          "section",
-          { class: "card pad" },
-          h(
-            "div",
-            { class: "stepper" },
-            steps.map(([n, label]) => h("button", { class: `stp${S.step === n ? " on" : ""}${S.step > n ? " done" : ""}`, onclick: () => goStep(n) }, h("span", { class: "stp-n" }, S.step > n ? "✓" : String(n)), h("span", null, label)))
-          ),
-          S.step === 1 ? stepOne(host) : S.step === 2 ? stepTwo(host) : stepThree(host),
-          h(
-            "div",
-            { class: "row between s-nav" },
-            S.step > 1 ? h("button", { class: "btn", onclick: () => goStep(S.step - 1) }, "← Atrás") : h("span", null),
-            S.step < 3 ? h("button", { class: "btn btn-primary", onclick: () => goStep(S.step + 1) }, "Siguiente →") : h("button", { class: "btn btn-primary", onclick: () => document.getElementById("studio-generate")?.scrollIntoView({ behavior: "smooth" }) }, "Listo: generar ↓")
-          )
-        ),
-        previewBlock()
-      ),
-      h(
-        "section",
-        { class: "card pad s-gen", id: "studio-generate" },
-        h("h2", null, "Genera tu oferta y anuncios"),
-        keyPanel(host),
-        S.keyMessage ? h("small", { class: "muted" }, S.keyMessage) : null,
-        h(
-          "div",
-          { class: "row wrap" },
-          h(
-            "button",
-            { class: "btn btn-primary btn-lg", disabled: !S.key || S.generating, onclick: () => void generate2(host, true), title: S.key ? "" : "Guarda tu clave de Anthropic para usar la IA" },
-            S.generating ? h("span", { class: "spinner" }) : icon("sparkle", 16),
-            S.generating ? "Generando con Claude…" : "Generar con IA"
-          ),
-          h("button", { class: "btn", disabled: S.generating, onclick: () => void generate2(host, false) }, "Borrador sin IA (plantillas)"),
-          d.id && S.products.some((p) => p.id === d.id) ? h(
+          h("button", { class: "btn", onclick: () => {
+            S.draft = newDraft();
+            S.error = "";
+            host.rerender();
+          } }, icon("plus", 14), "Nuevo"),
+          saved ? h(
             "button",
             {
               class: "btn danger",
@@ -29331,14 +29504,11 @@ ${a.texto}`, "Copiar anuncio")
                 host.rerender();
               }
             },
-            "Eliminar producto"
+            "Eliminar"
           ) : null
-        ),
-        completeness(d) < 100 ? h("small", { class: "muted" }, "Puedes generar aunque falten datos: lo que falte aparecerá entre [corchetes] para que lo completes.") : null,
-        S.error ? h("p", { class: "warn" }, S.error) : null,
-        h("small", { class: "muted" }, "Cifra no inventa testimonios, cifras ni resultados: revisa siempre el texto antes de publicarlo y cumple las políticas publicitarias de Meta.")
+        )
       ),
-      d.output ? outputView(d) : null
+      h("div", { class: "studio-grid" }, formView(host), h("section", { class: "s-out" }, d.output ? outputView(host, d) : emptyOutput()))
     );
   }
 
@@ -29395,6 +29565,8 @@ ${a.texto}`, "Copiar anuncio")
     run: null,
     settings: { ...DEFAULT_SETTINGS },
     nextAuto: null,
+    /** Hay anuncios de días anteriores (si todo es de hoy, «Nuevo» no distingue nada). */
+    anyOld: false,
     /** Anuncios nuevos guardados en segundo plano que aún no se muestran. */
     pendingNew: 0,
     /** Anunciante del que se están trayendo anuncios. */
@@ -29443,6 +29615,7 @@ ${a.texto}`, "Copiar anuncio")
       };
     });
     state.byId = new Map(state.ads.map((a) => [a.id, a]));
+    state.anyOld = state.ads.some((a) => a.addedAgo > 1);
     render();
   }
   var SORTS = {
@@ -29637,7 +29810,7 @@ ${a.texto}`, "Copiar anuncio")
       h(
         "div",
         { class: `sbox${ad.copies > 1 ? " copies" : ""}${hot ? " fire" : ""}`, title: "Anuncios que usan esta misma creatividad (Meta los agrupa como copias)" },
-        h("b", null, hot ? "🔥 " : "", fmtNum(ad.copies)),
+        h("b", null, fmtNum(ad.copies)),
         h("small", null, ad.copies === 1 ? "copia" : "copias")
       ),
       h(
@@ -29676,7 +29849,7 @@ ${a.texto}`, "Copiar anuncio")
           } }, ad.pageName),
           domainLink(ad)
         ),
-        extra.includes("is-new") || ad.addedAgo <= 1 ? chip("Nuevo", "chip-new") : null
+        extra.includes("is-new") || state.anyOld && ad.addedAgo <= 1 ? chip("Nuevo", "chip-new") : null
       ),
       h(
         "div",
@@ -29718,10 +29891,10 @@ ${a.texto}`, "Copiar anuncio")
       card(rep, "in-group")
     );
   }
-  function opt(label, n, on, onClick) {
+  function opt(label, n, on, onClick, extra = "") {
     return h(
       "button",
-      { class: `opt${on ? " on" : ""}${n === 0 ? " zero" : ""}`, onclick: onClick, "aria-pressed": String(on) },
+      { class: `opt${on ? " on" : ""}${n === 0 ? " zero" : ""}${extra}`, onclick: onClick, "aria-pressed": String(on) },
       h("span", { class: "opt-label" }, label),
       n !== null ? h("span", { class: "opt-n" }, fmtNum(n)) : null
     );
@@ -29738,7 +29911,7 @@ ${a.texto}`, "Copiar anuncio")
       h(
         "div",
         { class: "opts" },
-        o.allLabel === null ? null : opt(o.allLabel ?? "Todos", o.allCount ?? null, current === "", () => set("")),
+        o.allLabel === null ? null : opt(o.allLabel ?? "Todos", o.allCount ?? null, current === "", () => set(""), " all"),
         visible.map(([v, label, n]) => opt(label, n, current === v, () => set(current === v && o.allLabel !== null ? "" : v))),
         visible.length < options.length || expanded ? h(
           "button",
@@ -30961,7 +31134,20 @@ ${a.texto}`, "Copiar anuncio")
           h("a", { class: "btn", href: adLibraryUrl(ad.id), target: "_blank", rel: "noopener" }, "Ver en la Biblioteca", icon("ext", 13)),
           ad.linkUrl ? h("a", { class: "btn", href: ad.linkUrl, target: "_blank", rel: "noopener noreferrer nofollow" }, "Abrir landing", icon("ext", 13)) : null,
           ad.landingKey ? h("button", { class: "btn", onclick: () => filterBy({ landing: ad.landingKey }) }, icon("branch", 14), "Misma landing") : null,
-          text ? copyButton(text) : null
+          text ? copyButton(text) : null,
+          h(
+            "button",
+            {
+              class: "btn btn-studio",
+              title: "Usa este anuncio como referencia para crear tu propia oferta y anuncios",
+              onclick: () => {
+                addReference(ad);
+                go("studio");
+              }
+            },
+            icon("sparkle", 14),
+            "Usar en Studio"
+          )
         ),
         ad.partial ? h("p", { class: "warn" }, "Datos parciales leídos de la tarjeta visible. Vuelve a guardarlo desde la Biblioteca para completarlo.") : null,
         h(
@@ -31047,6 +31233,7 @@ ${a.texto}`, "Copiar anuncio")
   ];
   var studioHost = {
     favorites: () => state.ads.filter((a) => a.fav),
+    ads: (ids) => ids.map((id) => state.byId.get(id)).filter((a) => Boolean(a)),
     store: () => state.store,
     rerender: () => render()
   };

@@ -1,5 +1,5 @@
-:root { color-scheme: light dark; --bg:#ffffff; --text:#10151b; --soft:#5b6470; --border:#e2e6ea; --accent:#0e5c56; --accent-text:#ffffff; }
-@media (prefers-color-scheme: dark) { :root { --bg:#12161c; --text:#f1f3f5; --soft:#9aa3ad; --border:#232a33; --accent:#3fa295; --accent-text:#06221f; } }
+:root { color-scheme: light dark; --bg:#ffffff; --text:#141b34; --soft:#55607c; --border:#dde2ec; --accent:#2440e0; --accent-text:#ffffff; }
+@media (prefers-color-scheme: dark) { :root { --bg:#131931; --text:#e9ecf8; --soft:#a9b2ce; --border:#262f57; --accent:#8fa3ff; --accent-text:#0b1022; } }
 body { margin:0; width:320px; padding:14px; font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
 header { display:flex; align-items:center; gap:8px; font-size:15px; margin-bottom:10px; }
 section, details { border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:10px; }

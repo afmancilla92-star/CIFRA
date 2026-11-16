@@ -28,7 +28,7 @@ import {
 import { LocalStore, RETENTION_DAYS, type Favorite, type Follow, type LogEntry } from "./store";
 import { DEFAULT_SETTINGS, nextAutoAt, normalizeSettings, planSize, RUN_KEY, SETTINGS_KEY, type RadarSettings, type RunState } from "./runner";
 import { nicheSeeds } from "../lib/niche/seeds";
-import { studioView } from "./studio";
+import { addReference, studioView } from "./studio";
 import { chip, h, icon, platformBadge, type Child } from "./ui";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,6 +114,8 @@ const state = {
   run: null as RunState | null,
   settings: { ...DEFAULT_SETTINGS } as RadarSettings,
   nextAuto: null as number | null,
+  /** Hay anuncios de días anteriores (si todo es de hoy, «Nuevo» no distingue nada). */
+  anyOld: false,
   /** Anuncios nuevos guardados en segundo plano que aún no se muestran. */
   pendingNew: 0,
   /** Anunciante del que se están trayendo anuncios. */
@@ -166,6 +168,7 @@ async function load() {
     };
   });
   state.byId = new Map(state.ads.map((a) => [a.id, a]));
+  state.anyOld = state.ads.some((a) => a.addedAgo > 1);
   render();
 }
 
@@ -380,7 +383,7 @@ function statsRow(ad: View) {
     h(
       "div",
       { class: `sbox${ad.copies > 1 ? " copies" : ""}${hot ? " fire" : ""}`, title: "Anuncios que usan esta misma creatividad (Meta los agrupa como copias)" },
-      h("b", null, hot ? "🔥 " : "", fmtNum(ad.copies)),
+      h("b", null, fmtNum(ad.copies)),
       h("small", null, ad.copies === 1 ? "copia" : "copias"),
     ),
     h(
@@ -418,7 +421,7 @@ function card(ad: View, extra = "") {
         h("button", { class: "name-link", onclick: (e: Event) => { e.stopPropagation(); openAdvertiser(ad.pageId); } }, ad.pageName),
         domainLink(ad),
       ),
-      extra.includes("is-new") || ad.addedAgo <= 1 ? chip("Nuevo", "chip-new") : null,
+      extra.includes("is-new") || (state.anyOld && ad.addedAgo <= 1) ? chip("Nuevo", "chip-new") : null,
     ),
     h(
       "div",
@@ -462,10 +465,10 @@ function landingGroupCard(group: View[]) {
   );
 }
 
-function opt(label: Child, n: number | null, on: boolean, onClick: () => void) {
+function opt(label: Child, n: number | null, on: boolean, onClick: () => void, extra = "") {
   return h(
     "button",
-    { class: `opt${on ? " on" : ""}${n === 0 ? " zero" : ""}`, onclick: onClick, "aria-pressed": String(on) },
+    { class: `opt${on ? " on" : ""}${n === 0 ? " zero" : ""}${extra}`, onclick: onClick, "aria-pressed": String(on) },
     h("span", { class: "opt-label" }, label),
     n !== null ? h("span", { class: "opt-n" }, fmtNum(n)) : null,
   );
@@ -491,7 +494,7 @@ function sideSection(
     h(
       "div",
       { class: "opts" },
-      o.allLabel === null ? null : opt(o.allLabel ?? "Todos", o.allCount ?? null, current === "", () => set("")),
+      o.allLabel === null ? null : opt(o.allLabel ?? "Todos", o.allCount ?? null, current === "", () => set(""), " all"),
       visible.map(([v, label, n]) => opt(label, n, current === v, () => set(current === v && o.allLabel !== null ? "" : v))),
       visible.length < options.length || expanded
         ? h(
@@ -1807,6 +1810,19 @@ function openDetail(id: string) {
         ad.linkUrl ? h("a", { class: "btn", href: ad.linkUrl, target: "_blank", rel: "noopener noreferrer nofollow" }, "Abrir landing", icon("ext", 13)) : null,
         ad.landingKey ? h("button", { class: "btn", onclick: () => filterBy({ landing: ad.landingKey! }) }, icon("branch", 14), "Misma landing") : null,
         text ? copyButton(text) : null,
+        h(
+          "button",
+          {
+            class: "btn btn-studio",
+            title: "Usa este anuncio como referencia para crear tu propia oferta y anuncios",
+            onclick: () => {
+              addReference(ad);
+              go("studio");
+            },
+          },
+          icon("sparkle", 14),
+          "Usar en Studio",
+        ),
       ),
       ad.partial ? h("p", { class: "warn" }, "Datos parciales leídos de la tarjeta visible. Vuelve a guardarlo desde la Biblioteca para completarlo.") : null,
       h(
@@ -1902,6 +1918,7 @@ const NAV: Array<[Screen, string, Parameters<typeof icon>[0]]> = [
 
 const studioHost = {
   favorites: () => state.ads.filter((a) => a.fav),
+  ads: (ids: string[]) => ids.map((id) => state.byId.get(id)).filter((a): a is View => Boolean(a)),
   store: () => state.store!,
   rerender: () => render(),
 };

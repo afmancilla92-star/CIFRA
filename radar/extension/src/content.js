@@ -213,19 +213,19 @@
     shadow = host.attachShadow({ mode: "closed" });
     shadow.innerHTML = `
       <style>
-        .box{font:13px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#10151b;color:#f1f3f5;border:1px solid #2b333d;border-radius:14px;padding:12px 14px;width:280px;box-shadow:0 14px 36px -12px rgba(0,0,0,.55)}
+        .box{font:13px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#141b34;color:#e9ecf8;border:1px solid #2c3766;border-radius:14px;padding:12px 14px;width:280px;box-shadow:0 14px 36px -12px rgba(0,0,0,.55)}
         .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
         .brand{font-weight:700;letter-spacing:.2px}
-        .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3fa295;margin-right:6px}
+        .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffb400;margin-right:6px}
         .count{font-size:22px;font-weight:700;margin:6px 0 2px}
-        .muted{color:#9aa3ad;font-size:12px}
+        .muted{color:#a9b2ce;font-size:12px}
         button{font:inherit;border:0;border-radius:10px;padding:8px 10px;cursor:pointer}
-        .send{background:#3fa295;color:#06221f;font-weight:700;width:100%;margin-top:10px}
+        .send{background:#8fa3ff;color:#0b1022;font-weight:700;width:100%;margin-top:10px}
         .send:disabled{opacity:.55;cursor:default}
-        .open{background:transparent;color:#cfe9e5;border:1px solid #2b333d;width:100%;margin-top:8px}
+        .open{background:transparent;color:#d5dcf7;border:1px solid #2c3766;width:100%;margin-top:8px}
         .x{background:transparent;color:#9aa3ad;padding:2px 6px}
         .msg{margin-top:8px;font-size:12px;color:#c9d1d9}
-        .mini{background:#10151b;color:#f1f3f5;border:1px solid #2b333d;border-radius:999px;padding:8px 12px;font:600 12px system-ui,sans-serif;cursor:pointer}
+        .mini{background:#141b34;color:#e9ecf8;border:1px solid #2c3766;border-radius:999px;padding:8px 12px;font:600 12px system-ui,sans-serif;cursor:pointer}
       </style>
       <div class="box" part="box">
         <div class="row"><span class="brand"><span class="dot"></span>Cifra Radar</span><button class="x" title="Minimizar">–</button></div>
